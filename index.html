@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0a58c9"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}</style></head><body>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0a58c9"><meta name="apple-mobile-web-app-capable" content="yes"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}</style></head><body>
 <title>Súng Bắn Kiểm Kê</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -171,7 +171,7 @@ details.set[open] summary::after{content:"－"}
       <div class="cam-top" id="camTop" hidden><span class="tag" id="engineTag">—</span><span class="grow"></span><span class="tag mono" id="fpsTag"></span></div>
       <div class="cam-idle" id="camIdle">
         <button class="btn pri big" id="btnStart" type="button">Bật camera quét</button>
-        <p id="camMsg">Đưa mã vạch vào khung, máy tự bắt. Cùng một mã muốn bắn lại thì đưa ra khỏi khung rồi đưa vào lại.</p>
+        <p id="camMsg">Đưa mã vạch vào khung, cách 15–25 cm, máy tự bắt. Bắn lại cùng mã thì đưa ra khỏi khung rồi đưa vào lại.</p>
         <button class="cbtn" id="btnPhoto" type="button">Chụp ảnh mã (khi không quét trực tiếp được)</button>
       </div>
       <div class="cam-bar" id="camBar" hidden>
@@ -260,7 +260,7 @@ details.set[open] summary::after{content:"－"}
               <label>Khoảng nghỉ khi bắn lại cùng mã
                 <select id="sCool"><option value="700">0,7 giây</option><option value="1200">1,2 giây</option><option value="2000">2 giây</option><option value="3000">3 giây</option></select>
               </label>
-              <label>Xác nhận 2 khung hình (chống đọc sai) <input type="checkbox" id="sConfirm"></label>
+              <label>Đọc 2 lần với mã không có checksum (Code39, ITF) <input type="checkbox" id="sConfirm"></label>
               <label>Chặn IMEI bắn trùng <input type="checkbox" id="sDupImei"></label>
               <label>Âm báo <input type="checkbox" id="sSound"></label>
               <label>Rung <input type="checkbox" id="sVib"></label>
@@ -280,6 +280,7 @@ details.set[open] summary::after{content:"－"}
 <div id="sheet" class="sheet" hidden><div class="box" id="sheetBox"></div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.6/dist/iife/reader/index.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 <script>
 (function(){
@@ -518,12 +519,34 @@ let pend = {text:"", t:0}, lastAcc = {text:"", t:0}, lastSeen = {text:"", t:0};
 let fpsN = 0, fpsT = 0;
 let wakeLock = null;
 
+const WASM_URL = "https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.6/dist/reader/zxing_reader.wasm";
+const WASM_FORMATS = ["Code128","Code39","Code93","EAN13","EAN8","UPCA","UPCE","ITF","Codabar","QRCode","DataMatrix"];
+let wasmReady = null;
+function prepWasm(){
+  if (wasmReady) return wasmReady;
+  if (!window.ZXingWASM) return (wasmReady = Promise.resolve(false));
+  wasmReady = Promise.race([
+    Promise.resolve(window.ZXingWASM.prepareZXingModule({overrides:{locateFile:(path, prefix) => path.endsWith(".wasm") ? WASM_URL : prefix + path}, fireImmediately:true})).then(() => true),
+    new Promise(r => setTimeout(() => r(false), 12000))
+  ]).catch(() => false);
+  return wasmReady;
+}
+async function wasmRead(imageData, opts){
+  const res = await window.ZXingWASM.readBarcodes(imageData, Object.assign({formats:WASM_FORMATS, tryHarder:true, tryInvert:false, tryDownscale:true, maxNumberOfSymbols:4, textMode:"Plain"}, opts || {}));
+  return res.filter(r => r.isValid && r.text);
+}
 async function pickEngine(){
   if ("BarcodeDetector" in window){
     try{
       const fm = await BarcodeDetector.getSupportedFormats();
       const want = ["code_128","code_39","code_93","ean_13","ean_8","upc_a","upc_e","itf","codabar","qr_code","data_matrix"].filter(f => fm.includes(f));
       if (want.includes("code_128")){ detector = new BarcodeDetector({formats: want}); return "native"; }
+    }catch(e){}
+  }
+  if (await prepWasm()){
+    try{
+      await wasmRead(new ImageData(8, 8));
+      return "wasm";
     }catch(e){}
   }
   if (window.ZXing){
@@ -550,9 +573,8 @@ async function startCam(){
   }
   engine = engine || await pickEngine();
   if (!engine){ camError("Chưa tải được bộ đọc mã vạch (cần mạng lần đầu). Kiểm tra kết nối rồi thử lại."); return; }
-  const w = settings.res, h = Math.round(w * 9 / 16);
   try{
-    stream = await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:"environment"}, width:{ideal:w}, height:{ideal:h}, frameRate:{ideal:30}}});
+    await openStream();
   }catch(e){
     const n = e && e.name;
     camError(n === "NotAllowedError" || n === "SecurityError"
@@ -560,17 +582,24 @@ async function startCam(){
       : "Không mở được camera: " + (e && e.message || n || "lỗi không rõ"));
     return;
   }
-  track = stream.getVideoTracks()[0];
-  try{ await track.applyConstraints({advanced:[{focusMode:"continuous"}]}); }catch(e){}
-  video.srcObject = stream; video.hidden = false;
-  try{ await video.play(); }catch(e){}
-  setupCaps();
   $("#camIdle").hidden = true; $("#roi").hidden = false; $("#camBar").hidden = false; $("#camTop").hidden = false;
-  $("#engineTag").textContent = engine === "native" ? "Bộ đọc nhanh (máy)" : "Bộ đọc ZXing";
+  $("#engineTag").textContent = engine === "native" ? "Bộ đọc của máy" : engine === "wasm" ? "Bộ đọc WASM" : "Bộ đọc ZXing (dự phòng)";
   applyShape();
   running = true; paused = false; $("#btnPause").textContent = "Dừng";
   try{ if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request("screen"); }catch(e){}
+  startWatchdog();
   requestAnimationFrame(loop);
+}
+async function openStream(){
+  const w = settings.res, h = Math.round(w * 9 / 16);
+  stream = await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:"environment"}, width:{ideal:w}, height:{ideal:h}, frameRate:{ideal:30}}});
+  track = stream.getVideoTracks()[0];
+  try{ await track.applyConstraints({advanced:[{focusMode:"continuous"}]}); }catch(e){}
+  const tk = track;
+  tk.addEventListener("ended", () => { if (running && !restarting && tk === track) restartCam("Camera bị ngắt, đã tự bật lại"); });
+  video.srcObject = stream; video.hidden = false;
+  try{ await video.play(); }catch(e){}
+  setupCaps();
 }
 function setupCaps(){
   const caps = track.getCapabilities ? track.getCapabilities() : {};
@@ -589,12 +618,12 @@ function setZoom(v){
 let torchOn = false;
 function toggleTorch(){ if (!track) return; torchOn = !torchOn; track.applyConstraints({advanced:[{torch:torchOn}]}).then(()=>$("#btnTorch").classList.toggle("on", torchOn)).catch(()=>{ torchOn = false; toast("Máy không cho bật đèn"); }); }
 function stopCam(){
-  running = false;
+  running = false; clearInterval(watchdog);
   if (stream) stream.getTracks().forEach(t => t.stop());
   stream = null; track = null; torchOn = false; $("#btnTorch").classList.remove("on");
   video.hidden = true; $("#roi").hidden = true; $("#camBar").hidden = true; $("#camTop").hidden = true;
   $("#camIdle").hidden = false; $("#btnStart").textContent = "Bật camera quét";
-  $("#camMsg").textContent = "Đưa mã vạch vào khung, máy tự bắt. Cùng một mã muốn bắn lại thì đưa ra khỏi khung rồi đưa vào lại.";
+  $("#camMsg").textContent = "Đưa mã vạch vào khung, cách 15–25 cm, máy tự bắt. Bắn lại cùng mã thì đưa ra khỏi khung rồi đưa vào lại.";
   if (wakeLock){ wakeLock.release().catch(()=>{}); wakeLock = null; }
 }
 function applyShape(){ $("#roi").classList.toggle("sq", settings.shape === "square"); $("#btnShape").textContent = settings.shape === "square" ? "Khung ▢" : "Khung ▭"; }
@@ -629,43 +658,90 @@ function zxDecode(L, W, H){
   try{
     const src = new Z.RGBLuminanceSource(L, W, H);
     const bmp = new Z.BinaryBitmap(new Z.HybridBinarizer(src));
-    return zxReader.decodeWithState(bmp).getText();
+    const r = zxReader.decodeWithState(bmp);
+    return {text:r.getText(), format:String(window.ZXing.BarcodeFormat[r.getBarcodeFormat()] || "")};
   }catch(e){ return null; } finally { try{ zxReader.reset(); }catch(e){} }
+}
+function pickCenter(list, W, H, boxOf){
+  if (list.length === 1) return list[0];
+  let best = list[0], bd = 1e18;
+  for (const b of list){ const bb = boxOf(b); const dx = bb.cx - W/2, dy = bb.cy - H/2, d = dx*dx + dy*dy; if (d < bd){ bd = d; best = b; } }
+  return best;
 }
 async function decodeFrame(){
   if (engine === "native"){
     const {W, H} = grabROI(1600);
     const res = await detector.detect(cv);
     if (!res.length) return null;
-    if (res.length === 1) return res[0].rawValue;
-    let best = null, bd = 1e9;
-    for (const b of res){ const bb = b.boundingBox; const dx = bb.x + bb.width/2 - W/2, dy = bb.y + bb.height/2 - H/2; const d = dx*dx + dy*dy; if (d < bd){ bd = d; best = b; } }
-    return best.rawValue;
+    const b = pickCenter(res, W, H, x => ({cx:x.boundingBox.x + x.boundingBox.width/2, cy:x.boundingBox.y + x.boundingBox.height/2}));
+    return {text:b.rawValue, format:b.format};
   }
-  const {W, H} = grabROI(settings.shape === "square" ? 900 : 1280);
+  if (engine === "wasm"){
+    // rotate strategies each frame: sharp / blurry-or-low-contrast / downscaled for out-of-focus
+    const k = frameNo % 3, sq = settings.shape === "square";
+    const maxW = k === 2 ? (sq ? 750 : 900) : (sq ? 1100 : 1400);
+    const opt = k === 0 ? {} : k === 1 ? {binarizer:"GlobalHistogram", tryDenoise:true} : {tryDenoise:true};
+    opt.tryRotate = sq;
+    const {W, H} = grabROI(maxW);
+    const res = await wasmRead(cx.getImageData(0, 0, W, H), opt);
+    if (!res.length) return null;
+    const b = pickCenter(res, W, H, x => { const p = x.position; return {cx:(p.topLeft.x + p.bottomRight.x)/2, cy:(p.topLeft.y + p.bottomRight.y)/2}; });
+    return {text:b.text, format:b.format};
+  }
+  const {W, H} = grabROI(settings.shape === "square" ? 900 : 1100);
   const L = lumOf(W, H);
   let t = zxDecode(L, W, H);
   if (!t && settings.shape === "square" && (frameNo & 1)) t = zxDecode(rot90(L, W, H), H, W);
   return t;
 }
+let decAvg = 40, lastFrameT = -1, frozenN = 0, watchdog = null, restarting = false;
 async function loop(ts){
   if (!running) return;
-  const interval = engine === "native" ? 50 : 70;
+  const base = engine === "native" ? 40 : 45;
+  const interval = Math.max(base, decAvg * 1.15);
   if (!paused && !busy && video.readyState >= 2 && ts - lastTick >= interval){
     busy = true; lastTick = ts; frameNo++;
-    try{ const t = await decodeFrame(); onFrameResult(t); }catch(e){}
+    const t0 = performance.now();
+    try{ const r = await decodeFrame(); onFrameResult(r); }catch(e){}
+    decAvg = decAvg * 0.8 + (performance.now() - t0) * 0.2;
     busy = false;
-    fpsN++; if (ts - fpsT > 1000){ $("#fpsTag").textContent = fpsN + " khung/s"; fpsN = 0; fpsT = ts; }
+    fpsN++; if (ts - fpsT > 1000){ $("#fpsTag").textContent = fpsN + " lần/s"; fpsN = 0; fpsT = ts; }
   }
   requestAnimationFrame(loop);
 }
-function onFrameResult(text){
+function startWatchdog(){
+  clearInterval(watchdog);
+  frozenN = 0; lastFrameT = -1;
+  watchdog = setInterval(() => {
+    if (!running || paused || restarting || document.visibilityState !== "visible") return;
+    const dead = !track || track.readyState === "ended" || track.muted;
+    const ct = video.currentTime;
+    if (ct === lastFrameT) frozenN++; else frozenN = 0;
+    lastFrameT = ct;
+    if (dead || frozenN >= 3) restartCam("Camera bị đơ, đã tự bật lại");
+  }, 1200);
+}
+async function restartCam(msg){
+  if (restarting) return;
+  restarting = true;
+  try{
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    stream = null; track = null;
+    await openStream();
+    if (msg) toast(msg);
+  }catch(e){ stopCam(); camError("Mất camera: " + (e && e.message || e)); }
+  restarting = false; frozenN = 0;
+}
+const STRONG = /^(code128|ean13|ean8|upca|upce|qrcode|datamatrix|code93)$/;
+function onFrameResult(r){
   const now = performance.now();
   const roi = $("#roi");
-  if (!text){ roi.classList.remove("seen"); return; }
-  text = text.trim(); if (!text) return;
+  if (!r || !r.text){ roi.classList.remove("seen"); return; }
+  const text = String(r.text).trim(); if (!text) return;
   roi.classList.add("seen");
-  if (settings.confirm && !(pend.text === text && now - pend.t < 600)){ pend = {text, t:now}; return; }
+  const fmt = String(r.format || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const weak = !STRONG.test(fmt);
+  if (settings.confirm && weak && !(pend.text === text && now - pend.t < 1500)){ pend = {text, t:now}; return; }
   pend = {text, t:now};
   const continuous = lastSeen.text === text && now - lastSeen.t < 450;
   lastSeen = {text, t:now};
@@ -673,6 +749,7 @@ function onFrameResult(text){
   lastAcc = {text, t:now};
   addScan(text, 1);
 }
+const onFrameText = t => onFrameResult(typeof t === "string" ? {text:t, format:"code128"} : t);
 
 /* ---------- photo fallback ---------- */
 async function decodeImageFile(file){
@@ -687,10 +764,12 @@ async function decodeImageFile(file){
       cv.width = W; cv.height = H; cx.drawImage(img, 0, 0, W, H);
       if (eng === "native"){
         try{ (await detector.detect(cv)).forEach(b => found.add(b.rawValue.trim())); }catch(e){}
+      } else if (eng === "wasm"){
+        try{ (await wasmRead(cx.getImageData(0, 0, W, H), {tryRotate:true, maxNumberOfSymbols:8})).forEach(b => found.add(b.text.trim())); }catch(e){}
       } else if (eng === "zxing"){
         const L = lumOf(W, H);
-        const a = zxDecode(L, W, H); if (a) found.add(a.trim());
-        const b = zxDecode(rot90(L, W, H), H, W); if (b) found.add(b.trim());
+        const a = zxDecode(L, W, H); if (a) found.add(a.text.trim());
+        const b = zxDecode(rot90(L, W, H), H, W); if (b) found.add(b.text.trim());
       }
       if (found.size) break;
     }
@@ -913,11 +992,18 @@ $("#sSound").onchange = e => { settings.sound = e.target.checked; saveSet(); if 
 $("#sVib").onchange = e => { settings.vib = e.target.checked; saveSet(); };
 $("#sRes").onchange = e => { settings.res = +e.target.value; saveSet(); if (running){ stopCam(); startCam(); } };
 
-document.addEventListener("visibilitychange", async () => { if (document.visibilityState === "visible" && running && navigator.wakeLock){ try{ wakeLock = await navigator.wakeLock.request("screen"); }catch(e){} } });
+document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState !== "visible" || !running) return;
+  if (!track || track.readyState === "ended" || track.muted) restartCam();
+  else { try{ await video.play(); }catch(e){} }
+  if (navigator.wakeLock){ try{ wakeLock = await navigator.wakeLock.request("screen"); }catch(e){} }
+});
+window.addEventListener("pageshow", e => { if (e.persisted && running) restartCam(); });
 
 buildMaps();
 renderAll();
-window.__kk = {addScan, scans:()=>scans, computed:()=>computed, totals:()=>totals, loadDataFile, invRows:()=>invRows, onFrameResult, exportXlsx};
+prepWasm();
+window.__kk = {addScan, scans:()=>scans, computed:()=>computed, totals:()=>totals, loadDataFile, invRows:()=>invRows, onFrameResult:onFrameText, exportXlsx, engine:()=>engine};
 })();
 </script>
 
