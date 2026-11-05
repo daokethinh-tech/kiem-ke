@@ -65,6 +65,10 @@ header.top .sub{color:var(--muted);font-size:13px}
 .roi.hit-ok{background:rgba(40,200,110,.35)}.roi.hit-warn{background:rgba(255,200,40,.4)}.roi.hit-bad{background:rgba(255,60,70,.42)}.roi.hit-dup{background:rgba(255,130,40,.42)}
 .roi.seen::before{border-color:#7fd1ff}
 .cam-idle{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:18px;gap:10px;align-content:center}
+.cam.idle{aspect-ratio:auto}
+.cam.idle .cam-idle{position:static;padding:14px;gap:8px}
+.cam.idle .cam-idle .row{justify-content:center}
+.kbtn{min-width:52px;font-family:var(--f-mono);font-size:13px}
 .cam-idle p{margin:0;color:#b9c4cf;font-size:13.5px;max-width:34ch}
 .cam-bar{position:absolute;left:0;right:0;bottom:0;display:flex;gap:8px;align-items:center;padding:8px;background:linear-gradient(transparent,rgba(0,0,0,.65))}
 .cam-top{position:absolute;left:8px;right:8px;top:8px;display:flex;gap:6px;align-items:center;font-size:12px}
@@ -165,7 +169,7 @@ details.set[open] summary::after{content:"－"}
 
 <div class="wrap">
   <div class="col col-l">
-    <div class="cam" id="cam">
+    <div class="cam idle" id="cam">
       <video id="video" playsinline muted autoplay hidden></video>
       <div class="roi" id="roi" hidden></div>
       <div class="cam-top" id="camTop" hidden><span class="tag" id="engineTag">—</span><span class="grow"></span><span class="tag mono" id="fpsTag"></span></div>
@@ -186,7 +190,8 @@ details.set[open] summary::after{content:"－"}
     <input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
 
     <div class="manual">
-      <input id="manual" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Súng bắn / nhập tay rồi Enter">
+      <input id="manual" inputmode="numeric" enterkeyhint="done" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Nhập tay / súng bắn">
+      <button class="btn kbtn" id="btnKb" type="button" title="Đổi bàn phím số / chữ">ABC</button>
       <button class="btn pri" id="btnAdd" type="button">Thêm</button>
     </div>
 
@@ -292,7 +297,7 @@ const LS_SCANS = "kkc.scans.v1", LS_DATA = "kkc.data.v1", LS_SET = "kkc.set.v1";
 function lsGet(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
 function lsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } }
 
-const settings = Object.assign({cool:1200, confirm:true, dupImei:true, sound:true, vib:true, res:1920, shape:"band", zoom:null}, lsGet(LS_SET, {}));
+const settings = Object.assign({cool:1200, confirm:true, dupImei:true, sound:true, vib:true, res:1920, shape:"band", zoom:null, kb:"num"}, lsGet(LS_SET, {}));
 let scans = lsGet(LS_SCANS, []);          // [{id, code, qty, t}]
 let rawData = lsGet(LS_DATA, null);       // {file, at, pk:[[code,name,qty]], may:[[name,imei]]}
 let pkMap = new Map(), mayMap = new Map();
@@ -582,6 +587,7 @@ async function startCam(){
       : "Không mở được camera: " + (e && e.message || n || "lỗi không rõ"));
     return;
   }
+  $("#cam").classList.remove("idle");
   $("#camIdle").hidden = true; $("#roi").hidden = false; $("#camBar").hidden = false; $("#camTop").hidden = false;
   $("#engineTag").textContent = engine === "native" ? "Bộ đọc của máy" : engine === "wasm" ? "Bộ đọc WASM" : "Bộ đọc ZXing (dự phòng)";
   applyShape();
@@ -622,6 +628,7 @@ function stopCam(){
   if (stream) stream.getTracks().forEach(t => t.stop());
   stream = null; track = null; torchOn = false; $("#btnTorch").classList.remove("on");
   video.hidden = true; $("#roi").hidden = true; $("#camBar").hidden = true; $("#camTop").hidden = true;
+  $("#cam").classList.add("idle");
   $("#camIdle").hidden = false; $("#btnStart").textContent = "Bật camera quét";
   $("#camMsg").textContent = "Đưa mã vạch vào khung, cách 15–25 cm, máy tự bắt. Bắn lại cùng mã thì đưa ra khỏi khung rồi đưa vào lại.";
   if (wakeLock){ wakeLock.release().catch(()=>{}); wakeLock = null; }
@@ -694,6 +701,16 @@ async function decodeFrame(){
   if (!t && settings.shape === "square" && (frameNo & 1)) t = zxDecode(rot90(L, W, H), H, W);
   return t;
 }
+let wasmErr = 0;
+async function fallbackJs(){
+  if (!window.ZXing) return;
+  const Z = window.ZXing, hints = new Map(), F = Z.BarcodeFormat;
+  hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [F.CODE_128, F.CODE_39, F.CODE_93, F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E, F.ITF, F.CODABAR, F.QR_CODE, F.DATA_MATRIX]);
+  hints.set(Z.DecodeHintType.TRY_HARDER, true);
+  zxReader = new Z.MultiFormatReader(); zxReader.setHints(hints);
+  engine = "zxing"; wasmErr = 0;
+  $("#engineTag").textContent = "Bộ đọc ZXing (dự phòng)";
+}
 let decAvg = 40, lastFrameT = -1, frozenN = 0, watchdog = null, restarting = false;
 async function loop(ts){
   if (!running) return;
@@ -702,7 +719,8 @@ async function loop(ts){
   if (!paused && !busy && video.readyState >= 2 && ts - lastTick >= interval){
     busy = true; lastTick = ts; frameNo++;
     const t0 = performance.now();
-    try{ const r = await decodeFrame(); onFrameResult(r); }catch(e){}
+    try{ const r = await decodeFrame(); wasmErr = 0; onFrameResult(r); }
+    catch(e){ if (engine === "wasm" && ++wasmErr >= 5) await fallbackJs(); }
     decAvg = decAvg * 0.8 + (performance.now() - t0) * 0.2;
     busy = false;
     fpsN++; if (ts - fpsT > 1000){ $("#fpsTag").textContent = fpsN + " lần/s"; fpsN = 0; fpsT = ts; }
@@ -936,6 +954,14 @@ $("#photoInput").onchange = e => { const f = e.target.files[0]; e.target.value =
 
 function submitManual(){ const v = $("#manual").value.trim(); if (!v) return; audio(); addScan(v, 1); $("#manual").value = ""; }
 $("#btnAdd").onclick = submitManual;
+// keep the keyboard open when tapping buttons next to the field
+["#btnAdd","#btnKb"].forEach(id => $(id).addEventListener("mousedown", e => { if (document.activeElement === $("#manual")) e.preventDefault(); }));
+["#btnAdd","#btnKb"].forEach(id => $(id).addEventListener("touchend", e => { if (document.activeElement === $("#manual")){ e.preventDefault(); $(id).click(); } }, {passive:false}));
+function applyKb(){ const num = settings.kb !== "text"; $("#manual").setAttribute("inputmode", num ? "numeric" : "text"); $("#btnKb").textContent = num ? "ABC" : "123"; }
+$("#btnKb").onclick = () => { settings.kb = settings.kb === "text" ? "num" : "text"; saveSet(); applyKb(); const m = $("#manual"); if (document.activeElement === m){ m.blur(); setTimeout(() => m.focus(), 30); } };
+applyKb();
+// typing by hand: turn the camera off to save battery and free the screen
+$("#manual").addEventListener("focus", () => { if (running){ stopCam(); toast("Đã tắt camera để nhập tay"); } });
 $("#manual").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); submitManual(); } });
 
 // Hardware scanner typing while no field is focused
