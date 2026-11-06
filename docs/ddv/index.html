@@ -1453,7 +1453,9 @@ async function handleJoin(){
   try{ p = JSON.parse(unb64u(m[1])); }catch(e){}
   if(!p || !p.k || !p.b){ toast('Link mời bị lỗi — xin quản lý gửi lại', 'err', 5000); return false; }
   const old = syncCfg();
-  if(old.binId && old.binId !== p.b) clearSession();          // đổi sang cửa hàng khác → đăng nhập lại
+  // Luôn đăng xuất: máy này có thể đang đăng nhập sẵn (VD tài khoản mặc định Thịnh của máy mới,
+  // hoặc tài khoản quản trị) — nhân viên phải đăng nhập bằng tên của chính mình
+  clearSession(); S.me = null;
   setSyncCfg(Object.assign({}, old, {key:p.k, binId:p.b}));
   if(p.n){ S.shopName = p.n; await setMeta('shopName', p.n); }
   if(p.c){ S.shopCode = p.c; await setMeta('shopCode', p.c); }
@@ -5745,6 +5747,14 @@ async function boot(){
     await ensureUsers();
     await shLoad();
     await handleJoin();
+    // Máy đã mở app từ trước: quét QR mời chỉ đổi phần sau dấu # nên Safari KHÔNG tải lại trang.
+    // Bắt sự kiện đổi # để vẫn nhận lời mời rồi mở lại màn đăng nhập với danh sách tài khoản mới.
+    window.addEventListener('hashchange', async () => {
+      if(!/[#&]join=/.test(location.hash)) return;
+      closeModal && closeModal();
+      if(scanning) await stopScan();
+      if(await handleJoin()){ S.view = 'home'; render(); loginScreen(''); }
+    });
 
     // Khôi phục phiên đăng nhập trước đó nếu tài khoản vẫn còn
     const sess = readSession();
