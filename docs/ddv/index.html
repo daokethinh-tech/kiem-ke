@@ -475,6 +475,11 @@ textarea.input{min-height:70px;resize:vertical}
 .fs-foot{padding:12px 16px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--surface)}
 .fs-foot .actions{margin-top:0}
 .fs-foot .actions .btn{min-height:56px;font-size:16px;border-radius:14px}
+.fs-back{width:100%;min-height:52px;margin-top:9px;border-radius:14px;border:2px solid var(--ok);background:var(--ok-soft);
+  color:var(--ok);font-size:15.5px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;touch-action:manipulation}
+.fs-back .ic{width:20px;height:20px}
+.fs-back:active{background:var(--ok-line)}
+.fs-who{text-align:center;font-size:12px;color:var(--muted);margin-top:8px}
 .scanlast{display:none;align-items:center;gap:7px;margin:0 auto 8px;max-width:560px;background:rgba(0,0,0,.5);color:#fff;
   border-radius:11px;padding:7px 10px;font-size:12px;backdrop-filter:blur(6px)}
 .scanlast .ic{width:15px;height:15px;color:#3ddc84;flex:0 0 auto}
@@ -3613,7 +3618,7 @@ function beep(bad){
    ở phần đuôi. Trước đây app chỉ so 5 số cuối — dễ khớp nhầm sang SP khác có cùng 5 số đuôi.
    Giờ so từ dài tới ngắn (8 → 7 → 6 → 5 số), lấy mức dài nhất có kết quả, nên tem chuẩn
    (4 số đầu + 8 số cuối của barcode) luôn khớp đúng 1 SP. */
-const APP_VER = '2026.11.06-10';
+const APP_VER = '2026.11.06-11';
 const TAIL_LENS = [8, 7, 6, 5];
 const TAIL_LEN = 5;
 const digits = s => String(s == null ? '' : s).replace(/\D/g, '');
@@ -4454,8 +4459,8 @@ function showSheet(p, scannedCode, tail, noAdd){
         '<button class="btn sec" onclick="hideSheet()">Bỏ qua</button>' +
         '<button class="btn ok" style="flex:2" onclick="sheetSave()">' + svg('i-check') + 'LƯU &amp; QUÉT TIẾP</button>' +
       '</div>' +
-      '<div class="shfoot"><span>Người kiểm: <span class="whochip">' + esc(S.checker||'—') + '</span></span>' +
-        '<button onclick="sheetSaveBack()">' + svg('i-list') + 'Lưu &amp; về danh sách</button></div>' +
+      '<button class="fs-back" onclick="sheetSaveBack()">' + svg('i-list') + 'LƯU &amp; VỀ DANH SÁCH</button>' +
+      '<div class="fs-who">Người kiểm: <span class="whochip">' + esc(S.checker||'—') + '</span></div>' +
     '</div>';
   window._sheetP = p;
   sheetCalc();
