@@ -442,10 +442,39 @@ textarea.input{min-height:70px;resize:vertical}
 .shfoot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 2px;font-size:12px;color:var(--muted)}
 .shfoot button{border:0;background:none;color:var(--ink-2);font-weight:650;font-size:12.5px;display:inline-flex;align-items:center;gap:5px;padding:6px 2px}
 .shfoot .ic{width:15px;height:15px}
-/* đang mở bảng nhập: khung ngắm dời lên trên, nhỏ lại, để vẫn ngắm được SP kế tiếp */
-#scanview.sheeton .scan-frame{place-items:start center;padding-top:calc(max(10px,env(safe-area-inset-top)) + 58px)}
-#scanview.sheeton .scan-frame .box{width:min(46vw,190px)}
-#scanview.sheeton .scan-frame .box::after{opacity:.35}
+/* trang kiểm tra SP khi quét: toàn màn hình, che hẳn camera */
+#scanSheet{top:0;max-height:none;border-radius:0;padding:0;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+#scanSheet .grip{display:none}
+#scanSheet .body{flex:1;min-height:0;display:flex;flex-direction:column;padding:0}
+.fs-top{display:flex;align-items:center;gap:11px;padding:calc(max(12px,env(safe-area-inset-top)) + 4px) 14px 12px;
+  background:var(--ok-soft);border-bottom:1px solid var(--ok-line)}
+.fs-ok{width:36px;height:36px;border-radius:50%;background:var(--ok);color:#fff;display:grid;place-items:center;flex:0 0 auto}
+.fs-ok .ic{width:20px;height:20px}
+.fs-tt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.fs-tt b{font-size:15px;color:var(--ok)}
+.fs-tt span{font-size:12.5px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fs-tt .num{font-weight:700;color:var(--ink)}
+.fs-x{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;color:var(--ink-2);flex:0 0 auto}
+.fs-x .ic{width:18px;height:18px}
+.fs-main{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px 16px 14px}
+.fs-name{font-size:21px;font-weight:800;line-height:1.3;color:var(--ink)}
+.fs-chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 16px}
+.fs-nums{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fs-num{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:11px 14px;display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.fs-num label{font-size:12px;color:var(--muted);font-weight:600}
+.fs-num b{font-size:30px;font-weight:800;line-height:1.1;color:var(--ink)}
+.fs-num .pill{font-size:11px}
+.fs-qty{margin:20px 0 4px;text-align:center}
+.fs-ql{font-size:13px;font-weight:700;color:var(--ink-2);margin-bottom:8px}
+.fs-step{display:inline-flex;align-items:stretch;border:2px solid var(--ink);border-radius:18px;overflow:hidden;background:var(--surface)}
+.fs-step button{width:76px;height:76px;font-size:36px;font-weight:600;background:var(--surface-2);border:0;color:var(--ink);touch-action:manipulation}
+.fs-step button:active{background:var(--line)}
+.fs-step input{width:112px;height:76px;font-size:42px;font-weight:800;text-align:center;border:0;border-left:1px solid var(--line);border-right:1px solid var(--line);background:transparent;color:var(--ink);-moz-appearance:textfield}
+.fs-step input::-webkit-outer-spin-button,.fs-step input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+#scanSheet .shinfo{margin-top:14px;font-size:12.5px}
+.fs-foot{padding:12px 16px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--surface)}
+.fs-foot .actions{margin-top:0}
+.fs-foot .actions .btn{min-height:56px;font-size:16px;border-radius:14px}
 .scanlast{display:none;align-items:center;gap:7px;margin:0 auto 8px;max-width:560px;background:rgba(0,0,0,.5);color:#fff;
   border-radius:11px;padding:7px 10px;font-size:12px;backdrop-filter:blur(6px)}
 .scanlast .ic{width:15px;height:15px;color:#3ddc84;flex:0 0 auto}
@@ -3584,7 +3613,7 @@ function beep(bad){
    ở phần đuôi. Trước đây app chỉ so 5 số cuối — dễ khớp nhầm sang SP khác có cùng 5 số đuôi.
    Giờ so từ dài tới ngắn (8 → 7 → 6 → 5 số), lấy mức dài nhất có kết quả, nên tem chuẩn
    (4 số đầu + 8 số cuối của barcode) luôn khớp đúng 1 SP. */
-const APP_VER = '2026.11.06-9';
+const APP_VER = '2026.11.06-10';
 const TAIL_LENS = [8, 7, 6, 5];
 const TAIL_LEN = 5;
 const digits = s => String(s == null ? '' : s).replace(/\D/g, '');
@@ -4374,6 +4403,8 @@ function hideSheet(){
    - Ô số lượng = SỐ CỦA LẦN QUÉT NÀY (mặc định 1). Lưu là cộng vào tổng đã đếm.
      Trước đây ô này hiện tổng cộng dồn (VD 3+1 = 4), dễ nhầm là app điền sẵn tồn hệ thống.
    - noAdd = mở để SỬA TỔNG (nút "Sửa SL" / "Nhập lại tổng"): ô số lượng là tổng, lưu là ghi đè. */
+/* Trang kiểm tra SP — TOÀN MÀN HÌNH, che hẳn camera để người kiểm tập trung đếm đúng SP này.
+   Camera vẫn chạy ngầm phía sau (không nhận mã mới), bấm "Lưu & quét tiếp" là quét tiếp ngay. */
 function showSheet(p, scannedCode, tail, noAdd){
   const ht = Number(p.tonHT)||0;
   const had = p.tonTT != null;
@@ -4381,46 +4412,57 @@ function showSheet(p, scannedCode, tail, noAdd){
   const add = !noAdd;
   window._sheetPrev = prev; window._sheetAdd = add;
   const bl = blind();
-  // Gọn: 1 dòng mã + 1 dòng "đã đếm trước" — để bảng thấp, không che khung ngắm
   const other = had && p.checker && S.checker && p.checker !== S.checker;
+  const st = had ? calcStatus(ht, prev, p.isOut) : 'none';
   const info = had
-    ? '<div class="shinfo ' + (other ? 'warn' : '') + '"><span id="shModeTxt">' + (add ? 'Lưu sẽ <b>cộng thêm</b> vào' : 'Đang <b>sửa tổng</b>, thay cho') + '</span> ' +
-      '<b class="num">' + prev + '</b> đã đếm (' + (other ? '<b>' + esc(p.checker) + '</b>' : 'bạn') + (p.checkedAt ? ', ' + tFull(p.checkedAt) : '') + ')' +
+    ? '<div class="shinfo ' + (other ? 'warn' : '') + '"><span><span id="shModeTxt">' + (add ? 'Lưu sẽ <b>cộng thêm</b> vào' : 'Đang <b>sửa tổng</b>, thay cho') + '</span> ' +
+      '<b class="num">' + prev + '</b> đã đếm (' + (other ? '<b>' + esc(p.checker) + '</b>' : 'bạn') + (p.checkedAt ? ', ' + tFull(p.checkedAt) : '') + ')</span>' +
       '<button id="shModeBtn" onclick="sheetMode()">' + (add ? 'Nhập lại tổng' : 'Cộng thêm') + '</button></div>'
     : '';
   $('scanSheetBody').innerHTML =
-    '<div class="pname">' + esc(p.tenSP || 'Không tên') + '</div>' +
-    '<div class="shmeta">' +
-      (p.barcode ? '<span class="code">' + esc(p.barcode) + '</span>' : '') +
-      (scannedCode ? '<span class="tm">' + svg('i-check') + 'tem <b>' + esc(scannedCode) + '</b></span>' : '') +
-      (p.isOut ? '<span class="pill purple">Ngoài HT</span>' : '<span class="gp">' + esc(p.group||'Khác') + '</span>') +
+    '<div class="fs-top">' +
+      '<span class="fs-ok">' + svg('i-check') + '</span>' +
+      '<div class="fs-tt"><b>Đã quét được</b><span>' + (scannedCode ? 'tem <span class="num">' + esc(scannedCode) + '</span>' : 'mã <span class="num">' + esc(p.barcode || p.maSP || '') + '</span>') + '</span></div>' +
+      '<button class="fs-x" onclick="hideSheet()" aria-label="Bỏ qua">' + svg('i-x') + '</button>' +
     '</div>' +
-    '<div class="bigcount">' +
-      (bl ? '<div><div class="tagline">Tồn hệ thống</div><b style="font-size:19px;opacity:.35">••</b></div>'
-          : '<div><div class="tagline">Tồn hệ thống</div><b class="num" style="font-size:21px">' + ht + '</b></div>') +
-      '<div style="text-align:center"><div class="stepper">' +
-        '<button onclick="sheetStep(-1)">−</button>' +
-        '<input class="num" id="shQty" type="number" inputmode="numeric" min="0" value="' + (add ? 1 : prev) + '" oninput="sheetCalc()">' +
-        '<button onclick="sheetStep(1)">+</button>' +
-      '</div><div class="tagline" id="shQtyLbl" style="margin-top:4px">' + (add ? 'SL lần quét này' : 'Tổng đã đếm') + '</div></div>' +
-      '<div class="rt"><div class="tagline">Đã đếm</div><div class="d num" style="color:var(--ink)">' + (had ? prev : '—') + '</div>' +
-        (bl ? '<div class="l"><span class="pill purple">Kiểm chéo</span></div>'
-            : (had ? '<div class="l"><span class="pill ' + (STATUS_CLS[calcStatus(ht, prev, p.isOut)]||'') + '">' + STATUS_TXT[calcStatus(ht, prev, p.isOut)] +
-                (prev - ht ? ' ' + (prev - ht > 0 ? '+' : '') + (prev - ht) : '') + '</span></div>' : '<div class="l"><span class="pill">Chưa đếm</span></div>')) + '</div>' +
+    '<div class="fs-main">' +
+      '<div class="fs-name">' + esc(p.tenSP || 'Không tên') + '</div>' +
+      '<div class="fs-chips">' +
+        (p.barcode ? '<span class="code">' + esc(p.barcode) + '</span>' : '') +
+        (p.maSP ? '<span class="pill">' + esc(p.maSP) + '</span>' : '') +
+        '<span class="pill">' + esc(p.group || 'Khác') + '</span>' +
+        (p.isOut ? '<span class="pill purple">Ngoài HT</span>' : '') +
+      '</div>' +
+      '<div class="fs-nums">' +
+        '<div class="fs-num"><label>Tồn hệ thống</label>' + (bl ? '<b style="opacity:.35">••</b>' : '<b class="num">' + ht + '</b>') + '</div>' +
+        '<div class="fs-num"><label>Đã đếm trước</label><b class="num">' + (had ? prev : '—') + '</b>' +
+          (bl ? '<span class="pill purple">Kiểm chéo</span>' : '<span class="pill ' + (STATUS_CLS[st] || '') + '">' + (had ? STATUS_TXT[st] + (prev - ht ? ' ' + (prev - ht > 0 ? '+' : '') + (prev - ht) : '') : 'Chưa đếm') + '</span>') +
+        '</div>' +
+      '</div>' +
+      '<div class="fs-qty">' +
+        '<div class="fs-ql" id="shQtyLbl">' + (add ? 'SL lần quét này' : 'Tổng đã đếm') + '</div>' +
+        '<div class="fs-step">' +
+          '<button onclick="sheetStep(-1)" aria-label="Bớt 1">−</button>' +
+          '<input class="num" id="shQty" type="number" inputmode="numeric" min="0" value="' + (add ? 1 : prev) + '" oninput="sheetCalc()" onfocus="this.select()">' +
+          '<button onclick="sheetStep(1)" aria-label="Thêm 1">+</button>' +
+        '</div>' +
+      '</div>' +
+      info +
     '</div>' +
-    info +
-    '<div class="actions">' +
-      '<button class="btn sec" onclick="hideSheet()">Bỏ qua</button>' +
-      '<button class="btn ok" style="flex:2" onclick="sheetSave()">' + svg('i-check') + 'LƯU &amp; QUÉT TIẾP</button>' +
-    '</div>' +
-    '<div class="shfoot"><span>Người kiểm: <span class="whochip">' + esc(S.checker||'—') + '</span></span>' +
-      '<button onclick="sheetSaveBack()">' + svg('i-list') + 'Lưu &amp; về danh sách</button></div>';
+    '<div class="fs-foot">' +
+      '<div class="actions">' +
+        '<button class="btn sec" onclick="hideSheet()">Bỏ qua</button>' +
+        '<button class="btn ok" style="flex:2" onclick="sheetSave()">' + svg('i-check') + 'LƯU &amp; QUÉT TIẾP</button>' +
+      '</div>' +
+      '<div class="shfoot"><span>Người kiểm: <span class="whochip">' + esc(S.checker||'—') + '</span></span>' +
+        '<button onclick="sheetSaveBack()">' + svg('i-list') + 'Lưu &amp; về danh sách</button></div>' +
+    '</div>';
   window._sheetP = p;
   sheetCalc();
   $('scanSheet').classList.add('show');
   $('scanview').classList.add('sheeton');
   $('scanBottom').style.opacity = '0';
-  setTimeout(() => { const i = $('shQty'); if(i){ i.focus(); i.select(); } }, 300);
+  hideQuick();
 }
 /* Đổi giữa "cộng thêm" và "nhập lại tổng" */
 function sheetMode(){
