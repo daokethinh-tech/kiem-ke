@@ -424,6 +424,23 @@ textarea.input{min-height:70px;resize:vertical}
 .st-done{border-left-color:var(--info)} .st-done .cq{background:var(--info-soft);border:1px solid var(--info-line)} .st-done .cq b,.st-done .cq span{color:var(--info)}
 .csent{text-align:center;font-size:11.5px;color:var(--muted);padding:12px 0 4px}
 .grplist{max-height:58vh;overflow:auto}
+
+#camVideo{transition:filter .22s ease}
+#scanview.cool #camVideo{filter:brightness(.32) blur(2px)}
+#scanview.cool .scan-frame .box i{border-color:rgba(255,255,255,.35)}
+#scanview.cool .scan-frame .box::after{opacity:0 !important}
+.boxmsg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#fff;font-weight:700;font-size:14px;
+  background:rgba(0,0,0,.5);padding:6px 13px;border-radius:999px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s}
+#scanview.cool .boxmsg{opacity:1}
+#scanview.ready .scan-frame .box i{border-color:#3ddc84}
+#scanview.ready #reader::after{content:'';position:absolute;inset:0;background:#fff;pointer-events:none;animation:camready .45s ease-out forwards}
+@keyframes camready{from{opacity:.28}to{opacity:0}}
+.camsleep{position:absolute;inset:0;z-index:11;display:none;place-items:center;background:rgba(8,8,10,.94);color:#fff;text-align:center;padding:24px;cursor:pointer}
+.camsleep.show{display:grid}
+.camsleep>div{display:flex;flex-direction:column;align-items:center;gap:10px}
+.camsleep .ic{width:46px;height:46px;opacity:.85}
+.camsleep b{font-size:17px}
+.camsleep span{font-size:14px;color:#3ddc84;font-weight:700;border:1.5px solid #3ddc84;border-radius:999px;padding:9px 18px;margin-top:4px}
 .lgreload{margin-top:8px;border:0;background:none;color:var(--info);font-size:12.5px;font-weight:650;display:inline-flex;align-items:center;gap:6px;padding:4px 0}
 .lgreload .ic{width:15px;height:15px}
 .lgreload.busy .ic{animation:spin 0.9s linear infinite}
@@ -874,10 +891,12 @@ textarea.input{min-height:70px;resize:vertical}
   <nav class="tabbar" id="tabbar"></nav>
 </div>
 
-<div id="scanview">
+<div id="scanview" onpointerdown="camActAt = performance.now()">
   <div id="reader" onclick="tapFocus(event)"><video id="camVideo" playsinline muted autoplay></video></div>
   <div class="focusring" id="focusRing"></div>
-  <div class="scan-frame"><div class="box" id="scanBox"><i></i><i></i><i></i><i></i></div></div>
+  <div class="scan-frame"><div class="box" id="scanBox"><i></i><i></i><i></i><i></i><span class="boxmsg">Chuẩn bị…</span></div></div>
+  <div class="camsleep" id="camSleep" onclick="camWakeUp()"><div><svg class="ic"><use href="#i-camera"/></svg>
+    <b>Camera tạm nghỉ cho đỡ nóng máy</b><span>Chạm để quét tiếp</span></div></div>
   <div class="scan-top">
     <button class="sb" onclick="stopScan()"><svg class="ic"><use href="#i-x"/></svg>Đóng</button>
     <button class="sb" id="modeBtn" onclick="toggleScanMode()"></button>
@@ -3246,7 +3265,7 @@ function startWatch(){
   clearInterval(camWatch);
   camFrozenN = 0; camLastT = -1;
   camWatch = setInterval(() => {
-    if(!scanning || paused || camRestarting || document.visibilityState !== 'visible') return;
+    if(!scanning || paused || camSleeping || camRestarting || document.visibilityState !== 'visible') return;
     const v = $('camVideo');
     const dead = !camTrack || camTrack.readyState === 'ended' || camTrack.muted;
     const ct = v ? v.currentTime : 0;
@@ -3262,7 +3281,8 @@ async function keepAwake(on){
   }catch(e){ camWake = null; }
 }
 document.addEventListener('visibilitychange', () => {
-  if(document.visibilityState !== 'visible' || !scanning) return;
+  if(document.visibilityState !== 'visible' || !scanning || camSleeping) return;
+  camActAt = performance.now();
   if(!camTrack || camTrack.readyState === 'ended' || camTrack.muted) restartCam();
   else { const v = $('camVideo'); if(v) v.play().catch(() => {}); }
   camWake = null; keepAwake(true);
@@ -3358,18 +3378,19 @@ async function decodeFrame(){
   let W, H, list = [];
   // Sửa QR (in sát mép / mất góc): thỉnh thoảng khi không đọc ra gì; dày hơn khi đang theo dõi
   // mã vừa bắn thuộc loại này, để biết chắc nó còn trong khung hay đã rời đi
-  const wantFix = camEngine !== 'zxing' && (paused ? (_lastHard && camFrame % 2 === 0)
-    : (camFrame % 6 === 5 && (_lastHard || performance.now() - camHitAt > 700)));
+  // B. Sửa QR (in sát mép / mất góc) nặng → tối đa 1 lần/giây, 2 giây khi đang rảnh; chỉ tốn công
+  // khi trong khung có ≥2 ô định vị QR. Mã vừa bắn thuộc loại này → dày hơn (0,4 giây) trong
+  // vài giây sau khi lưu, để biết nó còn trong khung mà không bắn lại.
+  const tn = performance.now();
+  const hardTrack = _lastHard && tn - camCoolUntil < 6000;
+  const fixGap = hardTrack ? 400 : (tn - Math.max(camHitAt, camActAt) > 3000 ? 2000 : 1000);
+  const wantFix = camEngine !== 'zxing' && !paused && tn - camFixAt >= fixGap && (hardTrack || tn - camHitAt > 700);
   if(wantFix && await (wasmReady || Promise.resolve(false))){
+    camFixAt = tn;
     // vùng rộng gấp ~1,8 khung ngắm (QR tem thường lệch / to hơn khung), xen kẽ cả khung hình
     ({W, H} = (camFrame % 12 === 5) ? grabWide(1.8, 900) : grab(true, 960));
     list = await qrRepairRead(camCx.getImageData(0, 0, W, H), null, false);
     list.forEach(r => r.hard = true);
-    if(!list.length && paused && _lastHard){      // khung hẹp không thấy → thử cả khung hình
-      ({W, H} = grab(true, 960));
-      list = await qrRepairRead(camCx.getImageData(0, 0, W, H), null, false);
-      list.forEach(r => r.hard = true);
-    }
     return {list, W, H};
   }
   if(k === 3 && camEngine !== 'zxing' && await (wasmReady || Promise.resolve(false))){
@@ -3406,18 +3427,61 @@ async function decodeFrame(){
   }
   return {list:[], W:1, H:1};
 }
+/* ---- Nhịp quét & giảm nóng máy ----
+   A. Đọc ~8 lần/giây khi đang quét; 3 giây không thấy mã → ~3-4 lần/giây; thấy mã là nhanh lại.
+   C. Trang SP / hộp chọn đang mở (paused) → KHÔNG xử lý hình (camera vẫn mở để quét tiếp ngay).
+   D. 60 giây không quét được gì, không chạm màn hình → tắt camera, hiện "Chạm để quét tiếp".
+   Sau mỗi lần lưu: camera mờ đi ~0,6 giây (chưa nhận mã) rồi chớp nhẹ sáng lên mới quét tiếp. */
+const COOL_MS = 600, COOL_PLUS_MS = 400, SLEEP_MS = 60000;
+let camCoolUntil = 0, camWasPaused = false, camActAt = 0, camSleeping = false, camFixAt = 0;
+function camCool(ms){
+  const tn = performance.now();
+  camCoolUntil = tn + ms; camActAt = tn;
+  // mã vừa bắn coi như "vừa thấy" lúc hết chờ → còn nằm trong khung thì không bắn lại
+  if(lastCode) _seen.set(lastCode, tn + ms);
+  const sv = $('scanview'); if(!sv) return;
+  sv.classList.remove('ready'); sv.classList.add('cool');
+  { const bx = $('scanBox'); if(bx) bx.classList.remove('seen'); }
+  clearTimeout(camCool._t); clearTimeout(camCool._r);
+  camCool._t = setTimeout(() => {
+    sv.classList.remove('cool'); sv.classList.add('ready');
+    if(!isIOS()) buzz([12]);
+    camCool._r = setTimeout(() => sv.classList.remove('ready'), 480);
+  }, ms);
+}
+function camSleep(){
+  if(camSleeping) return;
+  camSleeping = true;
+  closeCam(); keepAwake(false);
+  { const r = $('engRate'); if(r) r.textContent = ''; }
+  const o = $('camSleep'); if(o) o.classList.add('show');
+}
+async function camWakeUp(){
+  if(!camSleeping) return;
+  const o = $('camSleep');
+  if(o) o.querySelector('span').textContent = 'Đang bật camera…';
+  try{ await openCam(); }
+  catch(e){ if(o) o.querySelector('span').textContent = 'Chưa bật được camera — chạm để thử lại'; return; }
+  if(o){ o.classList.remove('show'); o.querySelector('span').textContent = 'Chạm để quét tiếp'; }
+  camSleeping = false; keepAwake(true); startWatch();
+  camCool(COOL_MS);
+}
 async function camLoop(ts){
   if(!scanning) return;
+  const tn = performance.now();
+  if(paused){ camWasPaused = true; requestAnimationFrame(camLoop); return; }
+  if(camWasPaused){ camWasPaused = false; camCool(COOL_MS); }
+  if(camSleeping || tn < camCoolUntil){ requestAnimationFrame(camLoop); return; }
+  if(!stillBusy && camActAt && tn - camActAt > SLEEP_MS && tn - camHitAt > SLEEP_MS){ camSleep(); requestAnimationFrame(camLoop); return; }
   const v = $('camVideo');
-  const gap = Math.max(camEngine === 'native' ? 40 : 45, camDecAvg * 1.15);
-  // Đang mở bảng nhập số: KHÔNG nhận mã mới, chỉ đọc chậm (4 lần/giây) để biết mã cũ đã rời khung chưa
-  const g2 = paused ? Math.max(gap, 250) : gap;
-  if(!stillBusy && !camBusy && camEngine && v && v.readyState >= 2 && v.videoWidth && ts - camLastTick >= g2){
+  const idle = tn - Math.max(camHitAt, camActAt) > 3000;
+  const gap = Math.max(idle ? 280 : 125, camDecAvg * 1.15);
+  if(!stillBusy && !camBusy && camEngine && v && v.readyState >= 2 && v.videoWidth && ts - camLastTick >= gap){
     camBusy = true; camLastTick = ts; camFrame++;
     const t0 = performance.now();
     try{
       const r = await decodeFrame();
-      onFrame(r.list, r.W, r.H);
+      if(!paused) onFrame(r.list, r.W, r.H);
     }catch(e){}
     camDecAvg = camDecAvg * 0.8 + (performance.now() - t0) * 0.2;
     camBusy = false;
@@ -3468,6 +3532,8 @@ async function startScan(){
   $('scanview').classList.add('on');
   scanning = true; paused = false; torch = false;
   lastCode = ''; lastAt = 0; seenCode = ''; pendCode = ''; quickN = 0; _seen.clear();
+  camSleeping = false; camWasPaused = false; camCoolUntil = 0; camActAt = performance.now();
+  { const o = $('camSleep'); if(o) o.classList.remove('show'); $('scanview').classList.remove('cool', 'ready'); }
   $('torchBtn').classList.add('hidden'); $('torchBtn').classList.remove('on'); $('torchTxt').textContent = 'Đèn';
   $('scanZoom').style.display = 'none';
   $('manualCode').value = '';
@@ -3508,11 +3574,11 @@ async function startScan(){
   keepAwake(true);
   startWatch();
   requestAnimationFrame(camLoop);
-  // tải sẵn bộ đọc chữ trong nền để lần bấm "Chụp & đọc" đầu tiên không phải chờ
-  setTimeout(() => { if(scanning && !(navigator.connection && navigator.connection.saveData)) ocrWorker().catch(() => {}); }, 3500);
+  camActAt = performance.now(); camCoolUntil = 0;
 }
 async function stopScan(){
-  scanning = false; paused = false; torch = false; _findMode = false;
+  scanning = false; paused = false; torch = false; _findMode = false; camSleeping = false;
+  { const o = $('camSleep'); if(o) o.classList.remove('show'); }
   clearInterval(camWatch);
   hideSheet(); hideQuick();
   closeCam();
@@ -3656,7 +3722,7 @@ function beep(bad){
    ở phần đuôi. Trước đây app chỉ so 5 số cuối — dễ khớp nhầm sang SP khác có cùng 5 số đuôi.
    Giờ so từ dài tới ngắn (8 → 7 → 6 → 5 số), lấy mức dài nhất có kết quả, nên tem chuẩn
    (4 số đầu + 8 số cuối của barcode) luôn khớp đúng 1 SP. */
-const APP_VER = '2026.11.06-12';
+const APP_VER = '2026.11.06-13';
 const TAIL_LENS = [8, 7, 6, 5];
 const TAIL_LEN = 5;
 const digits = s => String(s == null ? '' : s).replace(/\D/g, '');
@@ -3909,6 +3975,7 @@ async function quickAdd(p, scanned, tail){
   await saveCount(p, (prev || 0) + 1, {a:'+', n:1, c: scanned || p.barcode || ''});
   quickN++;
   showQuick(p, {prev, prevBy, scanned, tail});
+  camCool(COOL_PLUS_MS);
 }
 function showQuick(p, info){
   info = info || {};
@@ -4304,7 +4371,11 @@ async function ocrTem(onStep){
   for(let i = 0; i < plans.length; i++){
     if(onStep) onStep(i);
     if(i) await sleep(150);
-    const r = await w.recognize(plans[i]());
+    const cv = plans[i]();
+    if(!cv.width || !cv.height) continue;
+    const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
+    if(!blob) continue;
+    const r = await w.recognize(blob);
     reads.push(r.data);
     const dec = ocrDecide(reads);
     if(dec && dec.sure) return dec;
@@ -4323,11 +4394,12 @@ async function scanStill(){
   if(!v || !v.videoWidth){ toast('Camera chưa sẵn sàng — chờ hình hiện lên rồi bấm lại','warn'); return; }
   stillBusy = true; paused = true;
   // Đọc chữ trên tem (VD 1010BF-00054953) chạy song song ở luồng riêng trong lúc thử đọc QR
-  let ocrMsg = '', ocrDone = false;
+  // (chỉ chạy khi QR không ra — đỡ tốn pin / nóng máy)
+  let ocrMsg = '', ocrDone = false, ocrP = null;
   const ocrFirst = !_ocrW;
-  const ocrP = ocrTem(i => { ocrMsg = 'đọc chữ trên tem (' + (i + 1) + '/3)'; })
+  const ocrStart = () => ocrP || (ocrP = ocrTem(i => { ocrMsg = 'đọc chữ trên tem (' + (i + 1) + '/3)'; })
     .catch(e => { console.warn('OCR', e); return {err:e}; })
-    .then(r => { ocrDone = true; return r; });
+    .then(r => { ocrDone = true; return r; }));
   const wasmOk = await prepWasm();
   const found = [];
   const tryCanvas = async (opts) => {
@@ -4377,8 +4449,9 @@ async function scanStill(){
       await sleep(i ? 220 : 60);
       await tryCanvas(plans[i]());
     }
-    // QR chưa ra SP → chờ kết quả đọc chữ trên tem
+    // QR chưa ra SP → đọc chữ trên tem
     if(!hasGood()){
+      ocrStart();
       let t0 = performance.now();
       while(!ocrDone){
         loading(true, ocrFirst && !ocrMsg ? 'Lần đầu: đang tải bộ đọc chữ (~5 MB)…' : 'Giữ yên máy · ' + (ocrMsg || 'đọc chữ trên tem…'));
