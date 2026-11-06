@@ -424,6 +424,9 @@ textarea.input{min-height:70px;resize:vertical}
 .st-done{border-left-color:var(--info)} .st-done .cq{background:var(--info-soft);border:1px solid var(--info-line)} .st-done .cq b,.st-done .cq span{color:var(--info)}
 .csent{text-align:center;font-size:11.5px;color:var(--muted);padding:12px 0 4px}
 .grplist{max-height:58vh;overflow:auto}
+.lgreload{margin-top:8px;border:0;background:none;color:var(--info);font-size:12.5px;font-weight:650;display:inline-flex;align-items:center;gap:6px;padding:4px 0}
+.lgreload .ic{width:15px;height:15px}
+.lgreload.busy .ic{animation:spin 0.9s linear infinite}
 
 /* bảng nhập khi quét — gọn để không che khung ngắm */
 #scanSheet .body{padding:4px 14px 0}
@@ -1173,7 +1176,9 @@ function loginScreen(msg){
     '<div class="field"><label>Tài khoản</label><select class="input" id="lgUser">' +
       users.map(x => '<option value="' + esc(x.u) + '">' + esc(x.name || x.u) +
         ((x.role === 'admin' || isOwner(x.u)) ? ' — Quản trị' : '') + '</option>').join('') +
-    '</select></div>' +
+    '</select>' +
+    (syncOn() ? '<button class="lgreload" id="lgReload" type="button">' + svg('i-refresh') + '<span>Không thấy tên mình? Tải lại danh sách</span></button>' : '') +
+    '</div>' +
     '<div class="field"><label>Mật khẩu</label>' +
       '<input class="input" id="lgPw" type="password" placeholder="Nhập mật khẩu" enterkeyhint="go"></div>' +
     '<div id="lgMsg" class="lgmsg">' + (msg || '') + '</div>' +
@@ -1194,7 +1199,33 @@ function loginScreen(msg){
   };
   document.getElementById('lgGo').onclick = doLogin;
   pw.onkeydown = e => { if(e.key === 'Enter') doLogin(); };
+  const rl = document.getElementById('lgReload');
+  if(rl) rl.onclick = () => loginReload(true);
   setTimeout(() => pw.focus(), 260);
+  if(syncOn() && !loginScreen._auto){ loginScreen._auto = true; loginReload(false); }   // tự tải 1 lần khi mở app
+}
+/* Tải danh sách tài khoản mới nhất từ Cloud cho màn đăng nhập (chưa cần đăng nhập) */
+async function loginReload(manual){
+  const rl = document.getElementById('lgReload');
+  if(rl){ rl.disabled = true; rl.classList.add('busy'); rl.querySelector('span').textContent = 'Đang tải danh sách...'; }
+  const before = S.users.length;
+  let ok = false;
+  try{ ok = await cloudPull({force:!!manual, quiet:true}); }catch(e){}
+  S.users = await allUsers();
+  const sel = document.getElementById('lgUser');
+  if(sel){
+    const cur = sel.value;
+    const users = S.users.slice().sort((a,b) => (isOwner(b.u)?1:0) - (isOwner(a.u)?1:0));
+    sel.innerHTML = users.map(x => '<option value="' + esc(x.u) + '">' + esc(x.name || x.u) +
+      ((x.role === 'admin' || isOwner(x.u)) ? ' — Quản trị' : '') + '</option>').join('');
+    if(findUser(cur)) sel.value = findUser(cur).u;
+  }
+  const rl2 = document.getElementById('lgReload');
+  if(rl2){ rl2.disabled = false; rl2.classList.remove('busy'); rl2.querySelector('span').textContent = 'Không thấy tên mình? Tải lại danh sách'; }
+  if(manual){
+    if(!ok) toast('Chưa tải được — kiểm tra mạng rồi thử lại', 'err', 3500);
+    else toast(S.users.length > before ? 'Đã có thêm ' + (S.users.length - before) + ' tài khoản mới' : 'Danh sách đã mới nhất (' + S.users.length + ' tài khoản)', 'ok', 3000);
+  }
 }
 
 async function afterLogin(){
@@ -1226,7 +1257,7 @@ async function changePassword(forced){
     if(n1 !== n2){ out.textContent = 'Hai ô mật khẩu chưa khớp'; return; }
     S.me.pw = await hashPw(n1); S.me.mustChange = false;
     await putUser(S.me); S.users = await allUsers();
-    closeModal(); toast('Đã đổi mật khẩu', 'ok'); pushSoon();
+    closeModal(); toast('Đã đổi mật khẩu', 'ok'); pushNow();
   };
   setTimeout(() => { const f = b.querySelector(forced ? '#pNew' : '#pOld'); if(f) f.focus(); }, 270);
 }
@@ -1280,14 +1311,14 @@ async function newUser(){
     if(pw.length < 4){ out.textContent = 'Mật khẩu tối thiểu 4 ký tự'; return; }
     await putUser({u:nm, name:nm, role:b.querySelector('#nRole').value, pw:await hashPw(pw), at:now(), mustChange:pw==='123456'});
     S.users = await allUsers(); closeModal(); render();
-    toast('Đã tạo tài khoản ' + nm, 'ok'); pushSoon();
+    toast('Đã tạo tài khoản ' + nm, 'ok'); pushNow();
   };
 }
 async function toggleRole(u){
   const x = findUser(u); if(!x || isOwner(x.u)) return;
   x.role = (x.role === 'admin') ? 'staff' : 'admin';
   await putUser(x); S.users = await allUsers(); render();
-  toast(x.name + ' → ' + (x.role === 'admin' ? 'Quản trị' : 'Nhân viên'), 'ok'); pushSoon();
+  toast(x.name + ' → ' + (x.role === 'admin' ? 'Quản trị' : 'Nhân viên'), 'ok'); pushNow();
 }
 async function resetUserPw(u){
   const x = findUser(u); if(!x) return;
@@ -1295,14 +1326,14 @@ async function resetUserPw(u){
   if(!ok) return;
   x.pw = await hashPw('123456'); x.mustChange = true;
   await putUser(x); S.users = await allUsers(); render();
-  toast('Đã reset mật khẩu về 123456', 'ok'); pushSoon();
+  toast('Đã reset mật khẩu về 123456', 'ok'); pushNow();
 }
 async function removeUser(u){
   const x = findUser(u); if(!x || isOwner(x.u)) return;
   const ok = await confirmBox('Xoá tài khoản?', 'Tài khoản <b>' + esc(x.name) + '</b> sẽ không đăng nhập được nữa.', 'Xoá', true);
   if(!ok) return;
   await delUser(x.u); S.users = await allUsers(); render();
-  toast('Đã xoá tài khoản', 'ok'); pushSoon();
+  toast('Đã xoá tài khoản', 'ok'); pushNow();
 }
 function needAdmin(){ toast('Chỉ quản trị viên mới dùng được mục này', 'warn'); return false; }
 
@@ -1491,6 +1522,13 @@ function joinLink(){
 async function openInvite(){
   if(!isAdmin()){ toast('Chỉ quản trị mới mời được nhân viên', 'warn'); return; }
   if(!syncOn()){ toast('Kết nối Cloud trước rồi mới mời nhân viên được', 'warn'); openSyncModal(); return; }
+  // Đảm bảo tài khoản vừa tạo / sửa đã lên Cloud trước khi nhân viên quét — nếu không máy họ
+  // tải về danh sách cũ, không thấy tên mình
+  loading(true, 'Đang gửi danh sách tài khoản lên Cloud...');
+  for(let i = 0; uploading && i < 60; i++) await sleep(250);   // đang gửi dở → chờ xong rồi gửi tiếp
+  const pushed = await pushNow().catch(() => false);
+  loading(false);
+  if(pushed === false && dirty){ toast('Chưa gửi được lên Cloud — kiểm tra mạng rồi bấm Mời lại', 'err', 5000); return; }
   const url = joinLink();
   let qr = '';
   try{
@@ -3618,7 +3656,7 @@ function beep(bad){
    ở phần đuôi. Trước đây app chỉ so 5 số cuối — dễ khớp nhầm sang SP khác có cùng 5 số đuôi.
    Giờ so từ dài tới ngắn (8 → 7 → 6 → 5 số), lấy mức dài nhất có kết quả, nên tem chuẩn
    (4 số đầu + 8 số cuối của barcode) luôn khớp đúng 1 SP. */
-const APP_VER = '2026.11.06-11';
+const APP_VER = '2026.11.06-12';
 const TAIL_LENS = [8, 7, 6, 5];
 const TAIL_LEN = 5;
 const digits = s => String(s == null ? '' : s).replace(/\D/g, '');
