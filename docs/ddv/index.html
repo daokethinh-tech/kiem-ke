@@ -367,6 +367,105 @@ textarea.input{min-height:70px;resize:vertical}
   display:flex;align-items:center;justify-content:center;gap:7px}
 .scan-still .ic{width:17px;height:17px}
 
+
+/* ===== Tab Kiểm kê: thanh lọc dính trên đầu + dòng gọn ===== */
+.main{--mx:14px}
+@media(min-width:880px){ .main{--mx:26px} }
+.cbar{position:sticky;top:var(--tbh,56px);z-index:20;background:var(--bg);
+  margin:0 calc(-1 * var(--mx)) 10px;padding:6px var(--mx) 9px;display:flex;flex-direction:column;gap:8px;
+  box-shadow:0 6px 10px -10px rgba(35,31,32,.35)}
+.cbar .search{min-width:0}
+.cbar .search input{padding-right:92px}
+.search .sfind,.search .sx{position:absolute;top:50%;transform:translateY(-50%);border:none;background:none;
+  display:grid;place-items:center;color:var(--ink-2);border-radius:9px}
+.search .sfind{right:5px;width:40px;height:36px;background:var(--dark);color:#fff}
+.search .sfind .ic{width:18px;height:18px}
+.search .sx{right:48px;width:34px;height:34px;color:var(--muted)}
+.search .sx .ic{width:16px;height:16px}
+.seg{display:flex;background:var(--line-2);border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px}
+.seg button{flex:1;min-width:0;border:none;background:none;border-radius:9px;padding:6px 2px;font-size:12.5px;font-weight:650;
+  color:var(--ink-2);display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.15}
+.seg button .num{font-size:11.5px;color:var(--muted);font-weight:750}
+.seg button.on{background:var(--surface);box-shadow:var(--shadow);color:var(--ink)}
+.seg button.on .num{color:var(--brand)}
+.cbar2{display:flex;gap:7px;align-items:center;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.cbar2::-webkit-scrollbar{display:none}
+.grpbtn{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);
+  border-radius:999px;padding:6px 11px;font-size:12.5px;color:var(--ink-2);max-width:64vw}
+.grpbtn span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grpbtn .ic{width:15px;height:15px}
+.grpbtn i{font-style:normal;font-size:11px;opacity:.7}
+.grpbtn.on{border-color:var(--dark);background:var(--dark);color:#fff}
+.subchips{display:flex;gap:6px;flex:0 0 auto}
+.subchips button{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);border-radius:999px;
+  padding:5px 10px;font-size:12px;font-weight:600;color:var(--ink-2)}
+.subchips button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.subchips .num{opacity:.7}
+.crow{display:flex;align-items:center;gap:10px;padding:10px 11px;border-top:1px solid var(--line-2);
+  border-left:3px solid var(--line);cursor:pointer;-webkit-user-select:none;user-select:none}
+.crow:first-child{border-top:none}
+.crow:active{background:var(--line-2)}
+.crow .cm{flex:1;min-width:0}
+.crow .t{font-weight:650;font-size:13.5px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.crow .s{display:flex;flex-wrap:wrap;gap:3px 9px;margin-top:3px;font-size:11.5px;color:var(--muted);align-items:center}
+.crow .cc{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px}
+.crow .cc b{color:var(--ink);font-weight:800}
+.crow .s b.num{color:var(--ink-2)}
+.crow .who{color:var(--info);font-weight:600}
+.cq{flex:0 0 auto;width:60px;height:50px;border-radius:12px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;background:var(--surface-2);border:1px dashed var(--line)}
+.cq b{font-size:20px;font-weight:800;line-height:1;color:var(--ink)}
+.cq span{font-size:10px;font-weight:700;margin-top:3px;color:var(--muted);white-space:nowrap}
+.st-none .cq b{color:var(--muted);font-weight:500}
+.st-ok{border-left-color:var(--ok)} .st-ok .cq{background:var(--ok-soft);border:1px solid var(--ok-line)} .st-ok .cq b,.st-ok .cq span{color:var(--ok)}
+.st-under{border-left-color:var(--under)} .st-under .cq{background:var(--under-soft);border:1px solid var(--under-line)} .st-under .cq b,.st-under .cq span{color:var(--under)}
+.st-over{border-left-color:var(--over)} .st-over .cq{background:var(--over-soft);border:1px solid var(--over-line)} .st-over .cq b,.st-over .cq span{color:var(--over)}
+.st-out{border-left-color:var(--purple)} .st-out .cq{background:var(--purple-soft);border:1px solid #e3cdf7} .st-out .cq b,.st-out .cq span{color:var(--purple)}
+.st-done{border-left-color:var(--info)} .st-done .cq{background:var(--info-soft);border:1px solid var(--info-line)} .st-done .cq b,.st-done .cq span{color:var(--info)}
+.csent{text-align:center;font-size:11.5px;color:var(--muted);padding:12px 0 4px}
+.grplist{max-height:58vh;overflow:auto}
+.eq-x{display:flex;gap:16px;margin-top:12px}
+.eq-x button{border:none;background:none;padding:4px 0;font-size:12.5px;font-weight:650;color:var(--ink-2);display:inline-flex;align-items:center;gap:5px}
+.eq-x button .ic{width:15px;height:15px}
+.eq-x .dg{color:var(--under);margin-left:auto}
+.grplist .lrow.on{background:var(--brand-soft)}
+.grplist .lrow .ic{color:var(--brand)}
+
+/* ===== Tab Nhóm hàng: thanh tổng + lưới ô ===== */
+.ring{--c:var(--info);width:46px;height:46px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;
+  background:conic-gradient(var(--c) calc(var(--p) * 1%), var(--line-2) 0)}
+.ring.ok{--c:var(--ok)}
+.ring span{width:calc(100% - 9px);height:calc(100% - 9px);border-radius:50%;background:var(--surface);
+  display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800;color:var(--ink);line-height:1}
+.ring small{font-size:.62em;font-weight:700;color:var(--muted)}
+.gsum{display:flex;gap:14px;align-items:center;padding:14px}
+.gsum .ring{width:68px;height:68px}
+.gsum .ring span{font-size:17px;width:calc(100% - 12px);height:calc(100% - 12px)}
+.gs-m{flex:1;min-width:0}
+.gs-t{font-size:13.5px;font-weight:600;color:var(--ink-2)}
+.gs-t b{font-size:19px;color:var(--ink)}
+.gs-s{font-size:12px;color:var(--muted);margin-top:2px}
+.gs-l{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.gtiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:11px}
+@media(min-width:700px){ .gtiles{grid-template-columns:repeat(3,minmax(0,1fr))} }
+@media(min-width:1100px){ .gtiles{grid-template-columns:repeat(4,minmax(0,1fr))} }
+.gtile{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
+  padding:11px 11px 10px;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-width:0;transition:transform .12s}
+.gtile:active{transform:scale(.97)}
+.gtile.done{background:var(--surface-2);box-shadow:none}
+.gtile.done .gt-n{color:var(--ink-2)}
+.gtile.off{opacity:.55;box-shadow:none;background:var(--surface-2)}
+.gt-top{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:7px}
+.gt-av{display:flex;padding-left:6px}
+.gt-av .av{width:24px;height:24px;font-size:10.5px;border:2px solid var(--surface);margin-left:-7px}
+.gt-av .av.more{background:var(--ink-2)}
+.gt-n{font-weight:700;font-size:13.5px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gt-s{font-size:11.5px;color:var(--muted)}
+.gt-b{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;min-height:2px}
+.gt-b:empty{display:none}
+.gt-edit{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:9px;padding-top:9px;
+  border-top:1px solid var(--line-2);font-size:11.5px;color:var(--ink-2)}
+
 /* ===== PHÂN CÔNG ===== */
 .asgrow{padding:12px 13px;border-top:1px solid var(--line-2)}
 .asgrow:first-child{border-top:none}
@@ -1901,7 +2000,10 @@ function ncard(k, i, t, s, bg, fg){
     '<div><div class="nt">' + t + '</div><div class="ns">' + s + '</div></div></button>';
 }
 
-/* ---------- Kiểm kê (danh sách + đếm) ---------- */
+/* ---------- Kiểm kê (danh sách + đếm) ----------
+   Mỗi dòng: tên đủ 2 dòng, mã (đậm 5 số cuối — phần trùng với tem), tồn HT, người đếm;
+   bên phải là ô số đếm to tô màu theo trạng thái. Chạm dòng để nhập / sửa số.
+   Bộ lọc gọn 1 hàng, nhóm hàng chọn qua nút "Nhóm ▾", cuộn tới đâu tải tới đó. */
 function filtered(){
   // Chọn riêng 1 nhóm thì xem trọn nhóm đó; còn lại chỉ hiện nhóm đang bật,
   // để danh sách luôn khớp với các con số thống kê.
@@ -1929,31 +2031,37 @@ function filtered(){
   return l.slice().sort((a,b) => {
     const ad = a.tonTT != null ? 1 : 0, bd = b.tonTT != null ? 1 : 0;
     if(ad !== bd) return ad - bd;             // chưa kiểm lên trước cho dễ làm
+    // Đang xem lệch thì lệch nhiều lên đầu
+    if(S.filter === 'lech' || S.filter === 'under' || S.filter === 'over'){
+      const dd = Math.abs(b.diff || 0) - Math.abs(a.diff || 0); if(dd) return dd;
+    }
     return (a.tenSP||'').localeCompare(b.tenSP||'','vi');
   });
 }
+const primaryOf = f => ['lech','under','over'].indexOf(f) >= 0 ? 'lech' : ['done','ok','out'].indexOf(f) >= 0 ? 'done' : f;
+let _cl = [];          // danh sách đang hiện, dùng để nạp thêm khi cuộn
+let _cObs = null;
 function vCount(){
   const s = stats();
-  const list = filtered();
+  const bl = blind();
+  const list = _cl = filtered();
   const shown = list.slice(0, (S.page + 1) * PAGE);
-  const left = list.length - shown.length;
-  // Đếm trên chip phải khớp với con số tiến độ phía trên: cùng loại bỏ những
-  // nhóm hàng đang tắt, nếu không sẽ thấy "chưa kiểm 557" trong khi tiến độ nói 227.
-  const base = activeProducts();
-  const counts = {
-    all: base.length,
-    left: base.filter(p => p.tonTT == null).length,
-    done: base.filter(p => p.tonTT != null).length,
-    ok: base.filter(p => p.status === 'ok').length,
-    under: base.filter(p => p.status === 'under').length,
-    over: base.filter(p => p.status === 'over').length,
-    out: base.filter(p => p.isOut).length
-  };
-  counts.lech = base.filter(p => p.tonTT != null && p.diff != null && p.diff !== 0).length;
-  const F = blind()
-    ? [['all','Tất cả'],['left','Chưa đếm'],['done','Đã đếm'],['out','Ngoài HT']]
-    : [['all','Tất cả'],['left','Chưa kiểm'],['done','Đã kiểm'],['lech','Lệch'],['under','Thiếu'],['over','Thừa'],['ok','Khớp'],['out','Ngoài HT']];
-  const groups = Array.from(new Set(S.products.map(p => p.group || 'Khác'))).sort();
+  // Đếm trên chip phải khớp với con số tiến độ phía trên: cùng loại bỏ những nhóm đang tắt
+  const base = S.group !== 'all' ? S.products.filter(inMyScope).filter(p => (p.group||'Khác') === S.group) : activeProducts();
+  const c = {all: base.length, left:0, done:0, ok:0, under:0, over:0, out:0, lech:0};
+  base.forEach(p => {
+    if(p.tonTT == null) c.left++; else c.done++;
+    if(p.status === 'ok') c.ok++; else if(p.status === 'under') c.under++; else if(p.status === 'over') c.over++;
+    if(p.isOut) c.out++;
+    if(p.tonTT != null && p.diff != null && p.diff !== 0) c.lech++;
+  });
+  const P = bl ? [['left','Chưa đếm'],['done','Đã đếm'],['all','Tất cả']]
+               : [['left','Chưa kiểm'],['lech','Lệch'],['done','Đã kiểm'],['all','Tất cả']];
+  const pf = primaryOf(S.filter);
+  let sub = [];
+  if(pf === 'lech' && !bl) sub = [['lech','Tất cả lệch'],['under','Thiếu'],['over','Thừa']];
+  if(pf === 'done'){ sub = [['done','Tất cả']]; if(!bl) sub.push(['ok','Khớp']); if(c.out) sub.push(['out','Ngoài HT']); }
+  const gName = S.group === 'all' ? 'Tất cả' : S.group;
 
   return (
   '<div class="page-h"><div><h1>Kiểm kê' + (isCross() ? ' <span class="pill purple">CHÉO</span>' : '') + '</h1>' +
@@ -1961,147 +2069,286 @@ function vCount(){
   '<button class="btn sm" onclick="startScan()">' + svg('i-scan') + 'Quét</button></div>' +
   (isCross() ? crossBanner() : '') +
 
-  '<div class="toolbar">' +
+  '<div class="cbar">' +
     '<div class="search">' + svg('i-search','si') +
-    '<input id="q" placeholder="Tìm barcode, mã SP, tên..." value="' + esc(S.q) + '"></div>' +
+      '<input id="q" placeholder="Tìm tên, mã, vài số cuối…" value="' + esc(S.q) + '" autocomplete="off" enterkeyhint="search">' +
+      (S.q ? '<button class="sx" onclick="clearQ()" aria-label="Xoá tìm kiếm">' + svg('i-x') + '</button>' : '') +
+      '<button class="sfind" onclick="startFind()" aria-label="Quét mã để tìm">' + svg('i-scan') + '</button>' +
+    '</div>' +
+    '<div class="seg">' + P.map(([k,t]) =>
+      '<button class="' + (pf === k ? 'on' : '') + '" onclick="setFilter(\'' + k + '\')">' + t +
+      '<span class="num">' + c[k] + '</span></button>').join('') + '</div>' +
+    '<div class="cbar2">' +
+      '<button class="grpbtn' + (S.group !== 'all' ? ' on' : '') + '" onclick="pickGroup()">' + svg('i-folder') +
+        '<span>Nhóm: <b>' + esc(gName) + '</b></span><i>▾</i></button>' +
+      (sub.length ? '<div class="subchips">' + sub.map(([k,t]) =>
+        '<button class="' + (S.filter === k ? 'on' : '') + '" onclick="setFilter(\'' + k + '\')">' + t + ' <span class="num">' + c[k] + '</span></button>').join('') + '</div>' : '') +
+    '</div>' +
   '</div>' +
-  '<div class="chips" style="margin-bottom:9px">' +
-    F.map(([k,t]) => '<button class="fchip' + (S.filter===k?' on':'') + '" onclick="setFilter(\'' + k + '\')">' +
-      t + '<span class="n num">' + counts[k] + '</span></button>').join('') +
-  '</div>' +
-  (groups.length > 1 ?
-  '<div class="chips" style="margin-bottom:11px">' +
-    '<button class="fchip' + (S.group==='all'?' on':'') + '" onclick="setGroup(\'all\')">Mọi nhóm</button>' +
-    groups.map(g => '<button class="fchip' + (S.group===g?' on':'') + '" onclick="setGroup(' + JSON.stringify(g).replace(/"/g,'&quot;') + ')">' + esc(g) + '</button>').join('') +
-  '</div>' : '') +
 
-  (!list.length ? emptyBox('i-box','Không có sản phẩm','Thử đổi bộ lọc hoặc import file tồn kho') :
-  '<div class="card listcard">' + shown.map(countRow).join('') + '</div>' +
-  (left > 0 ? '<button class="btn sec block" style="margin-top:10px" onclick="S.page++;render()">Xem thêm ' +
-    Math.min(left, PAGE) + ' · còn ' + left + ' SP</button>' : '') +
-  '<div class="tagline" style="text-align:center;margin-top:9px">Hiện ' + shown.length + ' / ' + list.length + ' SP</div>')
+  (!list.length ? emptyBox('i-box', S.q ? 'Không tìm thấy' : 'Không có sản phẩm',
+      S.q ? 'Không có SP khớp "' + esc(S.q) + '" trong mục đang lọc' : (S.filter === 'left' ? 'Đã đếm hết mục này 🎉' : 'Thử đổi bộ lọc hoặc import file tồn kho')) :
+  '<div class="card listcard" id="clist">' + shown.map(countRow).join('') + '</div>' +
+  '<div class="csent" id="csent">' + (shown.length < list.length ? 'Đang tải thêm…' : 'Hết danh sách · ' + list.length + ' SP') + '</div>')
   );
+}
+/* Mã hiển thị: đậm 5 số cuối — phần dùng để đối chiếu với tem dán */
+function codeHTML(c){
+  c = String(c || '');
+  if(c.length <= 6) return '<b>' + esc(c) + '</b>';
+  return esc(c.slice(0, -5)) + '<b>' + esc(c.slice(-5)) + '</b>';
 }
 function countRow(p){
   const bl = blind();
-  const st = p.status || 'none';
+  const st = p.tonTT == null ? 'none' : bl ? 'done' : (p.status || 'none');
   const d = p.diff;
-  const dTxt = (d == null) ? '' : (d > 0 ? '+' + d : String(d));
-  const dCol = d == null ? 'var(--muted)' : d === 0 ? 'var(--ok)' : d < 0 ? 'var(--under)' : 'var(--over)';
-  // Kỳ chéo: không lộ tồn hệ thống lẫn chênh lệch, cũng không tô màu theo trạng thái
-  const bar = bl ? (p.tonTT == null ? 'none' : 'ok') : (st === 'none' ? 'none' : st === 'out' ? 'out' : st);
-  return '<div class="count-row bar-' + bar + '" data-k="' + esc(p.key) + '">' +
-    '<div class="info" onclick="openDetail(' + JSON.stringify(p.key).replace(/"/g,'&quot;') + ')">' +
-      '<div class="t">' + esc(p.tenSP || '—') + '</div>' +
-      '<div class="s">' + esc(p.barcode || p.maSP || '') +
-        (p.checker ? ' · <span class="who">' + esc(p.checker) + '</span>' : '') + '</div>' +
-    '</div>' +
-    (bl ? '<div class="sysq blindq">HT<b>••</b></div>'
-        : '<div class="sysq">HT<b class="num">' + (p.tonHT == null ? 0 : p.tonHT) + '</b></div>') +
-    '<div class="stepper">' +
-      '<button data-a="dec">−</button>' +
-      '<input class="num" type="number" inputmode="numeric" data-a="inp" value="' + (p.tonTT == null ? '' : p.tonTT) + '" placeholder="–">' +
-      '<button data-a="inc">+</button>' +
-    '</div>' +
-    (bl ? '<div class="diffbadge blindq">•</div>'
-        : '<div class="diffbadge num" style="color:' + dCol + '">' + dTxt + '</div>') +
+  const sub = p.tonTT == null ? 'chưa đếm' : bl ? 'đã đếm' : p.isOut ? 'ngoài HT' : d === 0 ? 'khớp' : (d > 0 ? '+' + d : String(d));
+  return '<div class="crow st-' + st + '" data-k="' + esc(p.key) + '">' +
+    '<div class="cm"><div class="t">' + esc(p.tenSP || '—') + '</div>' +
+      '<div class="s"><span class="cc">' + codeHTML(p.barcode || p.maSP) + '</span>' +
+      (bl ? '' : '<span>HT <b class="num">' + (p.tonHT == null ? 0 : p.tonHT) + '</b></span>') +
+      (p.checker ? '<span class="who">' + esc(p.checker) + '</span>' : '') + '</div></div>' +
+    '<div class="cq"><b class="num">' + (p.tonTT == null ? '—' : p.tonTT) + '</b><span>' + sub + '</span></div>' +
   '</div>';
 }
 function bindCount(){
+  const tb = document.querySelector('.topbar');
+  if(tb) document.documentElement.style.setProperty('--tbh', tb.offsetHeight + 'px');
   const q = $('q');
   if(q){
     let t = null;
-    q.oninput = () => { clearTimeout(t); t = setTimeout(() => { S.q = q.value; S.page = 0; render(); $('q').focus(); }, 260); };
+    q.oninput = () => { clearTimeout(t); t = setTimeout(() => {
+      const pos = q.selectionStart;
+      S.q = q.value; S.page = 0; render();
+      const n = $('q'); if(n){ n.focus(); try{ n.setSelectionRange(pos, pos); }catch(e){} }
+    }, 260); };
+    q.onkeydown = e => { if(e.key === 'Enter') q.blur(); };
   }
-  document.querySelectorAll('.count-row').forEach(row => {
-    const key = row.dataset.k;
-    const inp = row.querySelector('[data-a="inp"]');
-    row.querySelector('[data-a="dec"]').onclick = () => stepQty(key, inp, -1);
-    row.querySelector('[data-a="inc"]').onclick = () => stepQty(key, inp, 1);
-    inp.onchange = () => commitQty(key, inp.value === '' ? null : Math.max(0, parseInt(inp.value)||0), row);
-  });
-}
-function stepQty(key, inp, d){
-  const cur = inp.value === '' ? 0 : (parseInt(inp.value) || 0);
-  const v = Math.max(0, cur + d);
-  inp.value = v;
-  commitQty(key, v, inp.closest('.count-row'));
-}
-async function commitQty(key, val, row){
-  const p = S.products.find(x => x.key === key);
-  if(!p) return;
-  p.tonTT = val;
-  p.diff = val == null ? null : (val - (Number(p.tonHT)||0));
-  p.status = calcStatus(p.tonHT, val, p.isOut);
-  p.checker = val == null ? '' : (S.checker || '');
-  p.checkedAt = val == null ? '' : now();
-  p.mtime = now();
-  await bulkPut('products', [p]);
-  if(val != null) addHistory(p);
-  if(row){
-    if(blind()){
-      row.className = 'count-row bar-' + (p.tonTT == null ? 'none' : 'ok');
-    }else{
-      const d = p.diff;
-      const badge = row.querySelector('.diffbadge');
-      badge.textContent = d == null ? '' : (d > 0 ? '+' + d : String(d));
-      badge.style.color = d == null ? 'var(--muted)' : d === 0 ? 'var(--ok)' : d < 0 ? 'var(--under)' : 'var(--over)';
-      row.className = 'count-row bar-' + (p.status === 'none' ? 'none' : p.status === 'out' ? 'out' : p.status);
-    }
+  const box = $('clist');
+  if(box) box.onclick = e => { const r = e.target.closest('.crow'); if(r) editQty(r.dataset.k); };
+  // Cuộn gần tới cuối thì nạp thêm, khỏi phải bấm "Xem thêm"
+  if(_cObs){ _cObs.disconnect(); _cObs = null; }
+  const sent = $('csent');
+  if(sent && box && 'IntersectionObserver' in window){
+    _cObs = new IntersectionObserver(ents => {
+      if(!ents.some(x => x.isIntersecting)) return;
+      const have = box.children.length;
+      if(have >= _cl.length) return;
+      S.page++;
+      box.insertAdjacentHTML('beforeend', _cl.slice(have, (S.page + 1) * PAGE).map(countRow).join(''));
+      sent.textContent = box.children.length < _cl.length ? 'Đang tải thêm…' : 'Hết danh sách · ' + _cl.length + ' SP';
+    }, {rootMargin:'700px 0px'});
+    _cObs.observe(sent);
   }
-  pushSoon();
 }
-function setFilter(f){ S.filter = f; S.page = 0; render(); }
+function clearQ(){ S.q = ''; S.page = 0; render(); }
+function setFilter(f){ S.filter = f; S.page = 0; render(); window.scrollTo(0, 0); }
 /* Bấm vào ô số liệu ở trang chủ → mở thẳng danh sách đã lọc sẵn */
 function jump(f){ S.filter = f; S.group = 'all'; S.q = ''; S.page = 0; go('count'); }
 function setGroup(g){ S.group = g; S.page = 0; render(); }
 function emptyBox(i, t, s){
   return '<div class="card"><div class="empty">' + svg(i,'ic') + '<div class="t">' + t + '</div><div class="s">' + s + '</div></div></div>';
 }
+function pickGroup(){
+  const gs = {};
+  S.products.filter(inMyScope).forEach(p => {
+    const g = p.group || 'Khác';
+    if(!gs[g]) gs[g] = {n:g, t:0, d:0};
+    gs[g].t++; if(p.tonTT != null) gs[g].d++;
+  });
+  const list = Object.values(gs).sort((a,b) => b.t - a.t);
+  const row = (k, t, sub, on) => '<button class="lrow' + (on ? ' on' : '') + '" data-g="' + esc(k) + '">' +
+    '<span class="lmain"><span class="t" style="display:block">' + esc(t) + '</span><span class="s" style="display:block">' + sub + '</span></span>' +
+    (on ? svg('i-check') : '') + '</button>';
+  const b = modal('<div class="modal-h"><div><h3>Chọn nhóm hàng</h3><p>Chỉ hiện SP thuộc nhóm được chọn</p></div></div>' +
+    '<div class="card listcard grplist">' +
+      row('all', 'Tất cả nhóm', activeProducts().length + ' SP' + (S.excluded.size ? ' · không tính nhóm đang tắt' : ''), S.group === 'all') +
+      list.map(g => row(g.n, g.n + (S.excluded.has(g.n) ? ' (đang tắt)' : ''), g.d + '/' + g.t + ' đã kiểm · còn ' + (g.t - g.d), S.group === g.n)).join('') +
+    '</div><div class="modal-actions"><button class="btn sec" onclick="closeModal()">Đóng</button></div>');
+  b.querySelectorAll('[data-g]').forEach(el => el.onclick = () => { closeModal(); setGroup(el.dataset.g); window.scrollTo(0, 0); });
+}
 
-/* ---------- Nhóm hàng ---------- */
+/* Hộp nhập / sửa số đếm khi chạm vào một dòng */
+function editQty(key){
+  const p = S.products.find(x => x.key === key); if(!p) return;
+  const bl = blind();
+  const ht = Number(p.tonHT) || 0;
+  const had = p.tonTT != null;
+  const b = modal(
+    '<div class="modal-h"><div><h3 style="font-size:15px">' + esc(p.tenSP || '—') + '</h3>' +
+    '<p><span class="code">' + esc(p.barcode || p.maSP || '—') + '</span> · ' + esc(p.group || 'Khác') +
+      (p.checker ? ' · đếm bởi <b>' + esc(p.checker) + '</b>' + (p.checkedAt ? ' ' + relTime(p.checkedAt) : '') : '') + '</p></div></div>' +
+    '<div class="bigcount">' +
+      (bl ? '<div><div class="tagline">Tồn hệ thống</div><b style="font-size:19px;opacity:.35">••</b></div>'
+          : '<div><div class="tagline">Tồn hệ thống</div><b class="num" style="font-size:21px">' + ht + '</b></div>') +
+      '<div class="stepper"><button data-d="-1">−</button>' +
+        '<input class="num" id="eqQty" type="number" inputmode="numeric" min="0" value="' + (had ? p.tonTT : '') + '" placeholder="?">' +
+        '<button data-d="1">+</button></div>' +
+      (bl ? '<div class="rt"><span class="pill purple">Kiểm chéo</span></div>'
+          : '<div class="rt"><div class="d num" id="eqDiff"></div><div class="l"><span class="pill" id="eqSt"></span></div></div>') +
+    '</div>' +
+    '<div class="eq-x">' +
+      '<button id="eqInfo">' + svg('i-info') + 'Chi tiết SP</button>' +
+      (had ? '<button id="eqClr" class="dg">' + svg('i-trash') + 'Xoá số đếm</button>' : '') +
+    '</div>' +
+    '<div class="modal-actions">' +
+      '<button class="btn sec" onclick="closeModal()">Hủy</button>' +
+      '<button class="btn ok" style="flex:2" id="eqGo">' + svg('i-check') + 'Lưu</button>' +
+    '</div>', {sticky:true});
+  const inp = b.querySelector('#eqQty');
+  const calc = () => {
+    if(bl) return;
+    const el = b.querySelector('#eqDiff'), pl = b.querySelector('#eqSt');
+    if(inp.value === ''){ el.textContent = ''; pl.className = 'pill'; pl.textContent = 'Chưa kiểm'; return; }
+    const tt = Math.max(0, parseInt(inp.value) || 0), d = tt - ht, s = calcStatus(ht, tt, p.isOut);
+    el.textContent = (d > 0 ? '+' : '') + d;
+    el.style.color = d === 0 ? 'var(--ok)' : d < 0 ? 'var(--under)' : 'var(--over)';
+    pl.className = 'pill ' + (STATUS_CLS[s] || ''); pl.textContent = STATUS_TXT[s];
+  };
+  b.querySelectorAll('[data-d]').forEach(x => x.onclick = () => {
+    inp.value = Math.max(0, (parseInt(inp.value) || 0) + Number(x.dataset.d)); calc();
+  });
+  inp.oninput = calc;
+  const save = async () => {
+    if(inp.value === ''){ inp.focus(); toast('Nhập số đã đếm', 'warn'); return; }
+    const v = Math.max(0, parseInt(inp.value) || 0);
+    closeModal();
+    await saveCount(p, v);
+    toast(String(p.tenSP || '').slice(0, 30) + ' = ' + v, 'ok', 1500);
+    render();
+  };
+  inp.onkeydown = e => { if(e.key === 'Enter') save(); };
+  b.querySelector('#eqGo').onclick = save;
+  b.querySelector('#eqInfo').onclick = () => { closeModal(); setTimeout(() => openDetail(p.key), 230); };
+  const clr = b.querySelector('#eqClr');
+  if(clr) clr.onclick = async () => {
+    const snap = Object.assign({}, p);
+    closeModal();
+    await saveCount(p, null);
+    render();
+    pushUndo('Đã xoá số đếm: ' + String(p.tenSP || '').slice(0, 22), async () => {
+      await bulkPut('products', [Object.assign({}, snap, {mtime: now()})]);
+    });
+  };
+  calc();
+  setTimeout(() => { inp.focus(); inp.select(); }, 260);
+}
+
+/* Quét để TÌM: quét một mã → mở thẳng SP đó trong danh sách */
+let _findMode = false;
+function startFind(){ _findMode = true; startScan(); }
+async function findGo(list, code){
+  _findMode = false;
+  beep(!list.length);
+  await stopScan();
+  S.filter = 'all'; S.group = 'all'; S.page = 0;
+  const p = list.length === 1 ? list[0] : null;
+  S.q = p ? String(p.barcode || p.maSP || code) : list.length ? digits(code).slice(-(list.tail || 5)) : String(code);
+  go('count');
+  if(p) setTimeout(() => editQty(p.key), 300);
+  else if(list.length) toast('Mã khớp ' + list.length + ' SP — chọn trong danh sách', 'info');
+  else toast('Không có SP nào khớp mã ' + code, 'warn');
+}
+
+/* ---------- Nhóm hàng ----------
+   Thanh tổng ở đầu trang, lưới 2 cột (mỗi nhóm một ô có vòng tiến độ), người được giao,
+   nhóm còn nhiều việc lên trước. Bật/tắt và đổi tên nhóm nằm trong chế độ "Sửa"
+   để không lỡ tay tắt mất nhóm. */
+function groupOwners(){
+  const a = assignMap(), out = {};
+  Object.keys(a).forEach(k => {
+    const u = findUser(k);
+    const nm = u ? (u.name || u.u) : k;
+    (a[k] || []).forEach(g => { (out[g] = out[g] || []).push(nm); });
+  });
+  return out;
+}
+function ring(pct, done){
+  return '<div class="ring' + (done ? ' ok' : '') + '" style="--p:' + pct + '"><span class="num">' + pct + '<small>%</small></span></div>';
+}
 function vGroups(){
+  const bl = blind();
+  const adm = isAdmin();
   const m = {};
   S.products.forEach(p => {
     const g = p.group || 'Khác';
-    if(!m[g]) m[g] = {n:g, total:0, done:0, under:0, over:0, qU:0, qO:0};
+    if(!m[g]) m[g] = {n:g, total:0, done:0, lech:0, qU:0, qO:0};
     const x = m[g]; x.total++;
-    if(p.tonTT != null){ x.done++;
-      if(p.status === 'under'){ x.under++; x.qU += Math.abs(p.diff||0); }
-      if(p.status === 'over'){ x.over++; x.qO += Math.abs(p.diff||0); } }
+    if(p.tonTT != null){
+      x.done++;
+      if(p.diff){ x.lech++; if(p.diff < 0) x.qU += -p.diff; else x.qO += p.diff; }
+    }
   });
-  const list = Object.values(m).sort((a,b) => b.total - a.total);
+  const all = Object.values(m);
+  const order = (a, b) => {
+    const ra = a.total - a.done, rb = b.total - b.done;
+    if((ra === 0) !== (rb === 0)) return ra === 0 ? 1 : -1;      // nhóm xong xuống cuối
+    return rb - ra || a.n.localeCompare(b.n, 'vi');
+  };
+  const on = all.filter(g => !S.excluded.has(g.n)).sort(order);
+  const off = all.filter(g => S.excluded.has(g.n)).sort(order);
+  const own = groupOwners();
+  const s = stats();
+
+  const tile = (g, isOn) => {
+    const pct = g.total ? Math.round(g.done / g.total * 100) : 0;
+    const left = g.total - g.done, done = left === 0;
+    const who = own[g.n] || [];
+    const arg = JSON.stringify(g.n).replace(/"/g, '&quot;');
+    return '<div class="gtile' + (done ? ' done' : '') + (isOn ? '' : ' off') + '" role="button" tabindex="0" ' +
+      'onclick="' + (S.grpEdit ? 'grpMenu(' + arg + ')' : 'openGroup(' + arg + ')') + '">' +
+      '<div class="gt-top">' + ring(pct, done) +
+        (who.length ? '<div class="gt-av">' + who.slice(0, 3).map(n =>
+          '<span class="av" title="' + esc(n) + '" style="background:' + avColor(n) + '">' + esc((n.trim()[0] || '?').toUpperCase()) + '</span>').join('') +
+          (who.length > 3 ? '<span class="av more">+' + (who.length - 3) + '</span>' : '') + '</div>' : '') +
+      '</div>' +
+      '<div class="gt-n">' + esc(g.n) + '</div>' +
+      '<div class="gt-s num">' + g.done + '/' + g.total + (done ? '' : ' · còn ' + left) + '</div>' +
+      '<div class="gt-b">' +
+        (done ? '<span class="pill ok">Xong</span>' : '') +
+        (!bl && g.lech ? '<span class="pill under">' + g.lech + ' lệch</span>' : '') +
+        (!isOn ? '<span class="pill">Đang tắt</span>' : '') +
+      '</div>' +
+      (S.grpEdit ? '<div class="gt-edit" onclick="event.stopPropagation()">' +
+        '<span>Tính vào tiến độ</span>' +
+        '<label class="switch"><input type="checkbox"' + (isOn ? ' checked' : '') +
+        ' onchange="toggleGroup(' + arg + ',this.checked)"><span class="sl"></span></label></div>' : '') +
+    '</div>';
+  };
+
   return (
-  '<div class="page-h"><div><h1>Nhóm hàng</h1><p>Tắt nhóm để loại khỏi tiến độ · chạm tên nhóm để đổi tên hoặc gộp</p></div>' +
-  (isAdmin() ? '<div style="display:flex;gap:6px">' +
-    '<button class="btn sm sec" onclick="go(\'assign\')">' + svg('i-users') + 'Phân công</button>' +
-    '</div>' : '') + '</div>' +
-  (myGroups().length ? '<div class="card pad" style="margin-bottom:11px;border-color:var(--brand-line);background:var(--brand-soft)">' +
+  '<div class="page-h"><div><h1>Nhóm hàng</h1><p>' + (S.grpEdit ? 'Chạm nhóm để đổi tên / gộp · gạt công tắc để tính hoặc bỏ khỏi tiến độ'
+      : on.length + ' nhóm đang kiểm · chạm một nhóm để đếm') + '</p></div>' +
+  (adm ? '<div style="display:flex;gap:6px">' +
+    (S.grpEdit ? '' : '<button class="btn sm sec" onclick="go(\'assign\')">' + svg('i-users') + 'Phân công</button>') +
+    '<button class="btn sm' + (S.grpEdit ? '' : ' sec') + '" onclick="S.grpEdit=!S.grpEdit;render()">' +
+      (S.grpEdit ? svg('i-check') + 'Xong' : svg('i-edit') + 'Sửa') + '</button></div>' : '') + '</div>' +
+
+  (all.length ? '<div class="card gsum">' + ring(s.pct, s.pct === 100) +
+    '<div class="gs-m"><div class="gs-t"><b class="num">' + s.done + '</b> / ' + s.active + ' SP đã kiểm</div>' +
+      '<div class="gs-s">Còn <b class="num">' + s.left + '</b> SP' + (s.total !== s.active ? ' · đã loại ' + (s.total - s.active) + ' SP nhóm tắt' : '') + '</div>' +
+      (bl ? '<div class="gs-s">Số lệch sẽ hiện sau khi mở đối chiếu</div>'
+          : '<div class="gs-l"><span class="pill under">Thiếu ' + s.under + ' SP · ' + s.qUnder + ' cái</span>' +
+            '<span class="pill over">Thừa ' + s.over + ' SP · ' + s.qOver + ' cái</span></div>') +
+    '</div></div>' : '') +
+
+  (myGroups().length ? '<div class="card pad" style="margin-top:11px;border-color:var(--brand-line);background:var(--brand-soft)">' +
     '<div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--brand-ink)">' +
     svg('i-users') + '<div style="flex:1"><b>Phần việc của bạn:</b> ' + myGroups().map(esc).join(' · ') + '</div>' +
     '<button class="btn xs sec" onclick="toggleOnlyMine()">' + (S.onlyMine ? 'Xem tất cả' : 'Chỉ việc của tôi') + '</button>' +
     '</div></div>' : '') +
-  (!list.length ? emptyBox('i-folder','Chưa có nhóm nào','Import file tồn kho để bắt đầu') :
-  '<div class="card listcard">' + list.map(g => {
-    const pct = g.total ? Math.round(g.done/g.total*100) : 0;
-    const on = !S.excluded.has(g.n);
-    return '<div class="gcard">' +
-      '<div class="gtop">' +
-        '<div class="gn"' + (on?'':' style="opacity:.5"') +
-          (isAdmin() ? ' onclick="grpMenu(' + JSON.stringify(g.n).replace(/"/g,'&quot;') + ')" style="cursor:pointer"' : '') +
-          '>' + esc(g.n) + (isAdmin() ? ' <span style="color:var(--muted);font-size:11px">✎</span>' : '') + '</div>' +
-        '<div class="gp num">' + pct + '%</div>' +
-        '<label class="switch"><input type="checkbox"' + (on?' checked':'') +
-          ' onchange="toggleGroup(' + JSON.stringify(g.n).replace(/"/g,'&quot;') + ',this.checked)"><span class="sl"></span></label>' +
-      '</div>' +
-      '<div class="prog"><i style="width:' + pct + '%"></i></div>' +
-      '<div class="gstat"><span>' + g.done + '/' + g.total + ' đã kiểm</span>' +
-        (g.under ? '<span style="color:var(--under)">Thiếu ' + g.under + ' SP (' + g.qU + ')</span>' : '') +
-        (g.over ? '<span style="color:var(--over)">Thừa ' + g.over + ' SP (' + g.qO + ')</span>' : '') +
-        '<button class="btn xs ghost" style="margin-left:auto;padding:0 6px;min-height:22px" onclick="setGroup(' + JSON.stringify(g.n).replace(/"/g,'&quot;') + ');go(\'count\')">Xem →</button>' +
-      '</div></div>';
-  }).join('') + '</div>')
+
+  (!all.length ? emptyBox('i-folder','Chưa có nhóm nào','Import file tồn kho để bắt đầu') :
+  '<div class="gtiles">' + on.map(g => tile(g, true)).join('') + '</div>' +
+  (off.length ? '<div class="sec-title">' + svg('i-folder') + 'Nhóm đang tắt (' + off.length + ') · không tính vào tiến độ</div>' +
+    '<div class="gtiles">' + off.map(g => tile(g, false)).join('') + '</div>' : ''))
   );
+}
+function openGroup(g){
+  const left = S.products.some(p => (p.group || 'Khác') === g && p.tonTT == null);
+  S.group = g; S.q = ''; S.page = 0;
+  S.filter = left ? 'left' : 'all';
+  go('count');
 }
 async function toggleGroup(g, on){
   if(on) S.excluded.delete(g); else S.excluded.add(g);
@@ -2857,7 +3104,8 @@ async function startScan(){
   $('engTag').textContent = 'Đang mở camera…'; $('engRate').textContent = '';
   clearSug(); hideSheet(); hideQuick(); paintMode();
   const hintEl = $('scanHint');
-  if(hintEl) hintEl.innerHTML = isCross() && !S.reveal
+  $('modeBtn').classList.toggle('hidden', _findMode);
+  if(hintEl) hintEl.innerHTML = _findMode ? '<b style="color:#ffd23f">TÌM SẢN PHẨM</b> · quét mã để mở SP trong danh sách' : isCross() && !S.reveal
     ? '<b style="color:#d8b4fe">KIỂM CHÉO</b> · tồn hệ thống đang ẩn · đếm theo thực tế'
     : 'Đưa mã vào khung · cách 15–25 cm · chạm màn hình để lấy nét';
   if(isInApp()) toast('Đang mở trong app — camera có thể không chạy, nên dùng Chrome/Safari','warn',4200);
@@ -2891,7 +3139,7 @@ async function startScan(){
   requestAnimationFrame(camLoop);
 }
 async function stopScan(){
-  scanning = false; paused = false; torch = false;
+  scanning = false; paused = false; torch = false; _findMode = false;
   clearInterval(camWatch);
   hideSheet(); hideQuick();
   closeCam();
@@ -3109,6 +3357,7 @@ function renderSug(){
   box.querySelectorAll('.sugi').forEach(el => el.onclick = () => {
     const p = S.products.find(x => x.key === el.dataset.k);
     if(!p) return;
+    if(_findMode){ clearSug(); inp.value = ''; inp.blur(); findGo([p], p.barcode || p.maSP); return; }
     clearSug();
     inp.value = ''; inp.blur();
     beep();
@@ -3132,6 +3381,11 @@ function onManualBlur(){
 function submitManual(){
   const v = $('manualCode').value.trim();
   if(!v) return;
+  if(_findMode){
+    _findMode = false; clearSug(); $('manualCode').value = '';
+    stopScan().then(() => { S.q = v; S.filter = 'all'; S.group = 'all'; S.page = 0; go('count'); });
+    return;
+  }
   // Gõ ngắn mà chỉ khớp đúng một SP thì vào thẳng, khỏi bắt chạm thêm một nhịp
   const sug = suggestFor(v);
   clearSug();
@@ -3147,6 +3401,7 @@ function submitManual(){
 function handleCode(code, fromCam){
   const r = resolveCode(code);
   const m = r.list;
+  if(_findMode){ findGo(m, r.code); return; }
   if(!m.length){ beep(true); hideQuick(); paused = true; showOutside(r.code); return; }
   beep();
   if(m.length === 1){
@@ -3387,7 +3642,7 @@ async function sheetSave(quiet){
   const p = window._sheetP; if(!p) return;
   const tt = Math.max(0, parseInt($('shQty').value)||0);
   await saveCount(p, tt);
-  if(!quiet) toast('✓ ' + String(p.tenSP||'').slice(0,26) + ' = ' + tt, 'ok', 1500);
+  if(!quiet) toast(String(p.tenSP||'').slice(0,30) + ' = ' + tt, 'ok', 1500);
   else toast('Đã lưu ' + String(p.tenSP||'').slice(0,22) + ' = ' + tt, 'ok', 2000);
   hideSheet();
   return true;
