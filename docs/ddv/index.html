@@ -424,6 +424,15 @@ textarea.input{min-height:70px;resize:vertical}
 .st-done{border-left-color:var(--info)} .st-done .cq{background:var(--info-soft);border:1px solid var(--info-line)} .st-done .cq b,.st-done .cq span{color:var(--info)}
 .csent{text-align:center;font-size:11.5px;color:var(--muted);padding:12px 0 4px}
 .grplist{max-height:58vh;overflow:auto}
+.lglist{max-height:34vh;overflow:auto;border:1px solid var(--line);border-radius:11px;background:var(--surface-2)}
+.lgrow{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:7px 10px;border-top:1px solid var(--line-2);font-size:12px}
+.lgrow:first-child{border-top:none}
+.lgt{font-weight:700;color:var(--ink);white-space:nowrap}
+.lgm{color:var(--ink-2);min-width:0;overflow-wrap:anywhere}
+.lgm .code{font-size:10.5px}
+.lga{white-space:nowrap;color:var(--ink-2)}
+.clrall{flex:0 0 auto;margin-left:auto;border:1px solid var(--under-line);background:var(--under-soft);color:var(--under);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px}
+.clrall .ic{width:14px;height:14px}
 .invqr{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px;width:min(64vw,250px);margin:4px auto 0}
 .invqr svg{display:block;width:100%;height:auto}
 .invsteps{margin:0;padding-left:19px;display:grid;gap:5px;font-size:12.5px;color:var(--ink-2);line-height:1.45}
@@ -1347,7 +1356,8 @@ function slim(p){
     // Reset số đếm cũng là một lần sửa, nên phải có mtime mới; nếu chỉ dựa vào
     // checkedAt thì bản trên Cloud (còn dấu thời gian cũ) sẽ thắng và đẩy số cũ về.
     mtime:p.mtime || p.checkedAt || '',
-    isOut:!!p.isOut
+    isOut:!!p.isOut,
+    log: Array.isArray(p.log) && p.log.length ? p.log.map(e => [e.t, e.u, e.a, e.n, e.v, e.c || '']) : undefined
   };
 }
 function chunkBySize(list, max){
@@ -1663,7 +1673,8 @@ function fat(r){
     tonTT:r.tonTT==null?null:r.tonTT, diff:r.diff==null?null:r.diff,
     status:r.status||'none', sessionId:r.sessionId||S.sessionId,
     checker:r.checker||'', checkedAt:r.checkedAt||'',
-    mtime:r.mtime || r.checkedAt || '', isOut:!!r.isOut
+    mtime:r.mtime || r.checkedAt || '', isOut:!!r.isOut,
+    log: Array.isArray(r.log) ? r.log.map(e => Array.isArray(e) ? {t:e[0], u:e[1], a:e[2], n:e[3], v:e[4], c:e[5] || ''} : e) : []
   };
 }
 
@@ -2172,6 +2183,7 @@ function vCount(){
   let sub = [];
   if(pf === 'lech' && !bl) sub = [['lech','Tất cả lệch'],['under','Thiếu'],['over','Thừa']];
   if(pf === 'done'){ sub = [['done','Tất cả']]; if(!bl) sub.push(['ok','Khớp']); if(c.out) sub.push(['out','Ngoài HT']); }
+  const clrBtn = (pf === 'done' && isAdmin() && c.done) ? '<button class="clrall" onclick="resetCounts()">' + svg('i-trash') + 'Xoá hết</button>' : '';
   const gName = S.group === 'all' ? 'Tất cả' : S.group;
 
   return (
@@ -2194,6 +2206,7 @@ function vCount(){
         '<span>Nhóm: <b>' + esc(gName) + '</b></span><i>▾</i></button>' +
       (sub.length ? '<div class="subchips">' + sub.map(([k,t]) =>
         '<button class="' + (S.filter === k ? 'on' : '') + '" onclick="setFilter(\'' + k + '\')">' + t + ' <span class="num">' + c[k] + '</span></button>').join('') + '</div>' : '') +
+      clrBtn +
     '</div>' +
   '</div>' +
 
@@ -2214,6 +2227,26 @@ function refreshList(){
   w.innerHTML = listAreaHTML();
   bindList();
 }
+/* Giờ đếm: hôm nay chỉ hiện giờ:phút:giây, ngày khác thêm ngày/tháng */
+function tFull(t){
+  if(!t) return '';
+  const d = new Date(t), p2 = n => String(n).padStart(2, '0');
+  const hm = p2(d.getHours()) + ':' + p2(d.getMinutes()) + ':' + p2(d.getSeconds());
+  return d.toDateString() === new Date().toDateString() ? hm : hm + ' ' + p2(d.getDate()) + '/' + p2(d.getMonth() + 1);
+}
+const LOG_TXT = {'+':'Cộng', '=':'Sửa tổng', '-':'Trừ', 'x':'Xoá số đếm', 'f':'Từ file quét'};
+function logEntryHTML(e){
+  const amt = e.a === '+' || e.a === 'f' ? '+' + e.n : e.a === '-' ? '−' + e.n : e.a === '=' ? '= ' + e.n : '';
+  return '<div class="lgrow"><span class="lgt num">' + tFull(e.t) + '</span>' +
+    '<span class="lgm"><b>' + esc(e.u || '—') + '</b> · ' + LOG_TXT[e.a] + (e.c ? ' · <span class="code">' + esc(e.c) + '</span>' : '') + '</span>' +
+    '<span class="lga num">' + amt + (e.v != null && e.a !== '=' ? ' → <b>' + e.v + '</b>' : '') + '</span></div>';
+}
+function logBlock(p){
+  const L = Array.isArray(p.log) ? p.log.slice().reverse() : [];
+  if(!L.length) return '';
+  return '<div class="field" style="margin-top:12px"><label>Lịch sử đếm (' + L.length + ')</label>' +
+    '<div class="lglist">' + L.map(logEntryHTML).join('') + '</div></div>';
+}
 /* Mã hiển thị: đậm 5 số cuối — phần dùng để đối chiếu với tem dán */
 function codeHTML(c){
   c = String(c || '');
@@ -2229,7 +2262,7 @@ function countRow(p){
     '<div class="cm"><div class="t">' + esc(p.tenSP || '—') + '</div>' +
       '<div class="s"><span class="cc">' + codeHTML(p.barcode || p.maSP) + '</span>' +
       (bl ? '' : '<span>HT <b class="num">' + (p.tonHT == null ? 0 : p.tonHT) + '</b></span>') +
-      (p.checker ? '<span class="who">' + esc(p.checker) + '</span>' : '') + '</div></div>' +
+      (p.checker ? '<span class="who">' + esc(p.checker) + (p.checkedAt ? ' · ' + tFull(p.checkedAt) : '') + '</span>' : '') + '</div></div>' +
     '<div class="cq"><b class="num">' + (p.tonTT == null ? '—' : p.tonTT) + '</b><span>' + sub + '</span></div>' +
   '</div>';
 }
@@ -2311,7 +2344,7 @@ function editQty(key){
   const b = modal(
     '<div class="modal-h"><div><h3 style="font-size:15px">' + esc(p.tenSP || '—') + '</h3>' +
     '<p><span class="code">' + esc(p.barcode || p.maSP || '—') + '</span> · ' + esc(p.group || 'Khác') +
-      (p.checker ? ' · đếm bởi <b>' + esc(p.checker) + '</b>' + (p.checkedAt ? ' ' + relTime(p.checkedAt) : '') : '') + '</p></div></div>' +
+      (p.checker ? ' · đếm bởi <b>' + esc(p.checker) + '</b> lúc ' + tFull(p.checkedAt) : '') + '</p></div></div>' +
     '<div class="bigcount">' +
       (bl ? '<div><div class="tagline">Tồn hệ thống</div><b style="font-size:19px;opacity:.35">••</b></div>'
           : '<div><div class="tagline">Tồn hệ thống</div><b class="num" style="font-size:21px">' + ht + '</b></div>') +
@@ -2321,6 +2354,7 @@ function editQty(key){
       (bl ? '<div class="rt"><span class="pill purple">Kiểm chéo</span></div>'
           : '<div class="rt"><div class="d num" id="eqDiff"></div><div class="l"><span class="pill" id="eqSt"></span></div></div>') +
     '</div>' +
+    logBlock(p) +
     '<div class="eq-x">' +
       '<button id="eqInfo">' + svg('i-info') + 'Chi tiết SP</button>' +
       (had ? '<button id="eqClr" class="dg">' + svg('i-trash') + 'Xoá số đếm</button>' : '') +
@@ -2347,7 +2381,7 @@ function editQty(key){
     if(inp.value === ''){ inp.focus(); toast('Nhập số đã đếm', 'warn'); return; }
     const v = Math.max(0, parseInt(inp.value) || 0);
     closeModal();
-    await saveCount(p, v);
+    await saveCount(p, v, {a:'=', n:v, c:'danh sách'});
     toast(String(p.tenSP || '').slice(0, 30) + ' = ' + v, 'ok', 1500);
     render();
   };
@@ -2358,7 +2392,7 @@ function editQty(key){
   if(clr) clr.onclick = async () => {
     const snap = Object.assign({}, p);
     closeModal();
-    await saveCount(p, null);
+    await saveCount(p, null, {a:'x'});
     render();
     pushUndo('Đã xoá số đếm: ' + String(p.tenSP || '').slice(0, 22), async () => {
       await bulkPut('products', [Object.assign({}, snap, {mtime: now()})]);
@@ -2579,7 +2613,8 @@ function vMore(){
   '<div class="card listcard">' +
     (adm ? mrow('i-download','Import tồn kho','File Excel từ hệ thống', "$('fileStock').click()") : '') +
     mrow('i-sat','Import kết quả quét','Súng bắn, LoMag, file kiểm kê · xlsx / csv · cộng dồn hoặc ghi đè', "$('fileScanRes').click()") +
-    mrow('i-upload','Xuất Excel kết quả','5 sheet: thông tin, chi tiết, lệch, nhóm, người kiểm', 'exportExcel()') +
+    mrow('i-upload','Xuất Excel kết quả','Thông tin, chi tiết, lệch, nhóm, người kiểm, lịch sử quét (giờ + mã tem)', 'exportExcel()') +
+    (adm ? mrow('i-trash','Xoá tất cả SP đã kiểm', 'Đưa mọi SP về chưa kiểm · giữ danh sách & tồn · có hoàn tác', 'resetCounts()') : '') +
   '</div>' + (adm ? '' : lock) +
 
   '<div class="sec-title">' + svg('i-layers') + 'Quản lý</div>' +
@@ -2712,40 +2747,42 @@ function vSessionsSync(allP){
 
 /* ---------- Lịch sử ---------- */
 let _hist = [];
+function allLogs(){
+  const out = [];
+  S.products.forEach(p => (Array.isArray(p.log) ? p.log : []).forEach(e => out.push({e, p})));
+  return out.sort((x, y) => (y.e.t || '').localeCompare(x.e.t || ''));
+}
 function vHistory(){
-  let items = _hist;
+  let items = allLogs();
   const q = S.histQ.toLowerCase().trim();
-  if(q) items = items.filter(h =>
-    (h.tenSP||'').toLowerCase().includes(q) || String(h.barcode||'').includes(q) ||
-    (h.checker||'').toLowerCase().includes(q));
+  if(q) items = items.filter(({e, p}) =>
+    (p.tenSP||'').toLowerCase().includes(q) || String(p.barcode||'').includes(q) ||
+    (e.u||'').toLowerCase().includes(q) || String(e.c||'').toLowerCase().includes(q));
+  const people = new Set(items.map(x => x.e.u));
   let out = '', lastD = '';
-  items.slice(0, 400).forEach(h => {
-    const d = h.at ? new Date(h.at) : null;
+  items.slice(0, 500).forEach(({e, p}) => {
+    const d = e.t ? new Date(e.t) : null;
     const ds = d ? d.toLocaleDateString('vi-VN') : '—';
     if(ds !== lastD){ out += '<div class="hsep">' + ds + '</div>'; lastD = ds; }
-    const st = h.status || 'none';
-    const bg = {ok:'var(--ok-soft)',under:'var(--under-soft)',over:'var(--over-soft)',out:'var(--purple-soft)'}[st] || 'var(--line-2)';
-    const fg = {ok:'var(--ok)',under:'var(--under)',over:'var(--over)',out:'var(--purple)'}[st] || 'var(--muted)';
-    const icn = {ok:'✓',under:'↓',over:'↑',out:'+'}[st] || '·';
-    out += '<div class="hrow">' +
-      '<div class="hic" style="background:' + bg + ';color:' + fg + '">' + icn + '</div>' +
-      '<div class="lmain"><div class="t">' + esc(h.tenSP || h.barcode || '—') + '</div>' +
-      '<div class="s">' + (d ? hhmm(d) : '') + (h.checker ? ' · <span class="who">' + esc(h.checker) + '</span>' : '') +
-        (h.barcode ? ' · <span class="code">' + esc(h.barcode) + '</span>' : '') + '</div></div>' +
-      '<div class="qtycol"><div class="big num">' + (h.tonTT == null ? '—' : h.tonTT) + '</div>' +
-      '<div class="sm num" style="color:' + fg + '">' + (h.diff == null ? '' : (h.diff>0?'+':'') + h.diff) + '</div></div>' +
+    const amt = e.a === '+' || e.a === 'f' ? '+' + e.n : e.a === '-' ? '−' + e.n : e.a === '=' ? '=' + e.n : '×';
+    const fg = e.a === 'x' || e.a === '-' ? 'var(--under)' : e.a === '=' ? 'var(--over)' : 'var(--ok)';
+    out += '<div class="hrow" onclick="editQty(' + JSON.stringify(p.key).replace(/"/g,'&quot;') + ')" style="cursor:pointer">' +
+      '<div class="hic num" style="background:var(--surface-2);color:' + fg + ';font-size:12px;font-weight:800">' + amt + '</div>' +
+      '<div class="lmain"><div class="t">' + esc(p.tenSP || p.barcode || '—') + '</div>' +
+      '<div class="s"><b class="num">' + tFull(e.t) + '</b> · <span class="who">' + esc(e.u || '—') + '</span> · ' + LOG_TXT[e.a] +
+        (e.c ? ' · <span class="code">' + esc(e.c) + '</span>' : '') + '</div></div>' +
+      '<div class="qtycol"><div class="big num">' + (e.v == null ? '—' : e.v) + '</div><div class="sm">tổng</div></div>' +
     '</div>';
   });
   return (
-  '<div class="page-h"><div><h1>Lịch sử quét</h1><p>' + items.length + ' lần đếm trong kỳ này</p></div>' +
-  '<button class="btn sm sec" onclick="loadHistory(true)">' + svg('i-refresh') + '</button></div>' +
+  '<div class="page-h"><div><h1>Lịch sử quét</h1><p>' + items.length + ' lần đếm · ' + people.size + ' người · mọi máy đã đồng bộ</p></div>' +
+  (syncOn() ? '<button class="btn sm sec" onclick="cloudPull({quiet:true}).then(() => toast(\'Đã làm mới\',\'ok\'))">' + svg('i-refresh') + '</button>' : '') + '</div>' +
   '<div class="toolbar"><div class="search">' + svg('i-search','si') +
-  '<input id="hq" placeholder="Tìm tên, barcode, nhân viên..." value="' + esc(S.histQ) + '" oninput="onHistQ(this.value)"></div></div>' +
+  '<input id="hq" placeholder="Tìm tên, mã, mã tem, nhân viên..." value="' + esc(S.histQ) + '" oninput="onHistQ(this.value)"></div></div>' +
   (!items.length ? emptyBox('i-clock','Chưa có lần đếm nào', q ? 'Không khớp từ khoá' : 'Bắt đầu quét để ghi lịch sử') :
-  '<div class="card listcard">' + out + '</div>')
+  '<div class="card listcard">' + out + '</div>' + (items.length > 500 ? '<div class="csent">Hiện 500 lần gần nhất · xuất Excel để xem đủ</div>' : ''))
   );
 }
-let _hqT = null;
 function onHistQ(v){ clearTimeout(_hqT); _hqT = setTimeout(() => { S.histQ = v; render(); $('hq') && $('hq').focus(); }, 260); }
 async function loadHistory(toastIt){
   const all = await allHistory();
@@ -3345,7 +3382,7 @@ function beep(bad){
    ở phần đuôi. Trước đây app chỉ so 5 số cuối — dễ khớp nhầm sang SP khác có cùng 5 số đuôi.
    Giờ so từ dài tới ngắn (8 → 7 → 6 → 5 số), lấy mức dài nhất có kết quả, nên tem chuẩn
    (4 số đầu + 8 số cuối của barcode) luôn khớp đúng 1 SP. */
-const APP_VER = '2026.11.06-7';
+const APP_VER = '2026.11.06-8';
 const TAIL_LENS = [8, 7, 6, 5];
 const TAIL_LEN = 5;
 const digits = s => String(s == null ? '' : s).replace(/\D/g, '');
@@ -3503,6 +3540,7 @@ function renderSug(){
     const p = S.products.find(x => x.key === el.dataset.k);
     if(!p) return;
     if(_findMode){ clearSug(); inp.value = ''; inp.blur(); findGo([p], p.barcode || p.maSP); return; }
+    window._scanSrc = 'gõ tay: ' + q;
     clearSug();
     inp.value = ''; inp.blur();
     beep();
@@ -3537,6 +3575,7 @@ function submitManual(){
   $('manualCode').value = '';
   $('manualCode').blur();
   hideQuick();
+  window._scanSrc = 'gõ tay: ' + v;
   if(sug.length === 1){ beep(); paused = true; showSheet(sug[0]); return; }
   if(sug.length > 1){ beep(); paused = true; showPicker(v, sug.slice(0, 12)); return; }
   handleCode(v, false);
@@ -3546,6 +3585,7 @@ function submitManual(){
 function handleCode(code, fromCam){
   const r = resolveCode(code);
   const m = r.list;
+  window._scanSrc = fromCam ? r.code : 'gõ tay: ' + r.code;
   if(_findMode){ findGo(m, r.code); return; }
   if(!m.length){ beep(true); hideQuick(); paused = true; showOutside(r.code); return; }
   beep();
@@ -3565,7 +3605,16 @@ function handleCode(code, fromCam){
 
 /* ---------- Chế độ +1: thẻ kết quả nhỏ, không chặn màn hình ---------- */
 let _quickStart = {};   // số đếm trước khi bắt đầu chuỗi +1 của từng SP, để −1 về đúng chỗ cũ
-async function saveCount(p, tt){
+/* Nhật ký đếm gắn vào từng SP → đồng bộ qua Cloud cùng số đếm, máy quản lý thấy được
+   ai bắn mã tem nào, lúc mấy giờ (đến giây), cộng bao nhiêu, tổng sau đó là bao nhiêu.
+   a: '+' cộng · '=' sửa tổng · '-' trừ · 'x' xoá số đếm · 'f' từ file quét. Giữ 30 lần gần nhất / SP. */
+function logPush(p, e){
+  e.t = now(); e.u = S.checker || '';
+  p.log = (Array.isArray(p.log) ? p.log : []).concat([e]).slice(-30);
+}
+async function saveCount(p, tt, info){
+  info = info || {};
+  logPush(p, {a: info.a || (tt == null ? 'x' : '='), n: info.n != null ? info.n : tt, v: tt, c: info.c || ''});
   p.tonTT = tt;
   p.diff = tt == null ? null : tt - (Number(p.tonHT)||0);
   p.status = calcStatus(p.tonHT, tt, p.isOut);
@@ -3582,7 +3631,7 @@ async function quickAdd(p, scanned, tail){
   const prev = p.tonTT == null ? null : Number(p.tonTT);
   const prevBy = p.checker || '';
   if(!(p.key in _quickStart)) _quickStart[p.key] = prev;
-  await saveCount(p, (prev || 0) + 1);
+  await saveCount(p, (prev || 0) + 1, {a:'+', n:1, c: scanned || p.barcode || ''});
   quickN++;
   showQuick(p, {prev, prevBy, scanned, tail});
 }
@@ -3619,7 +3668,7 @@ async function quickMinus(){
   let v = Math.max(0, cur - 1);
   // Trừ về 0 mà trước chuỗi quét SP này chưa được đếm → trả về "chưa kiểm" thay vì "đếm được 0"
   if(v === 0 && _quickStart[p.key] == null) v = null;
-  await saveCount(p, v);
+  await saveCount(p, v, {a: v == null ? 'x' : '-', n:1});
   quickN = Math.max(0, quickN - 1);
   if(v == null){ hideQuick(); toast('Đã bỏ lượt quét — SP trở về chưa kiểm', 'info', 2000); return; }
   showQuick(p, {});
@@ -3802,7 +3851,7 @@ async function sheetSave(quiet){
   const p = window._sheetP; if(!p) return;
   const tt = sheetTotal();
   const q = Math.max(0, parseInt($('shQty').value)||0);
-  await saveCount(p, tt);
+  await saveCount(p, tt, window._sheetAdd ? {a:'+', n:q, c:window._scanSrc || ''} : {a:'=', n:tt, c:window._scanSrc || ''});
   if(!quiet) toast(String(p.tenSP||'').slice(0,24) + ': ' + (window._sheetAdd && window._sheetPrev ? window._sheetPrev + ' + ' + q + ' = ' : '') + tt, 'ok', 1700);
   else toast('Đã lưu ' + String(p.tenSP||'').slice(0,22) + ' = ' + tt, 'ok', 2000);
   hideSheet();
@@ -3865,7 +3914,7 @@ async function openDetail(key){
         (p.diff==null?'var(--muted)':p.diff===0?'var(--ok)':p.diff<0?'var(--under)':'var(--over)') + '">' +
         (p.diff==null?'—':(p.diff>0?'+':'')+p.diff) + '</div></div>') + '</div>' +
     (p.checker ? '<div class="tagline" style="margin-top:10px">Kiểm bởi <span class="whochip">' + esc(p.checker) + '</span>' +
-      (p.checkedAt?' · '+relTime(p.checkedAt):'') + '</div>' : '') +
+      (p.checkedAt ? ' lúc ' + tFull(p.checkedAt) : '') + '</div>' : '') + logBlock(p) +
     '<div class="modal-actions"><button class="btn danger" id="dDel">' + svg('i-trash') + 'Xoá SP</button>' +
     '<button class="btn sec" onclick="closeModal()">Đóng</button></div>', {});
   b.querySelector('#dDel').onclick = async () => {
@@ -4003,21 +4052,24 @@ async function resetCounts(){
   if(!isAdmin()) return needAdmin();
   const done = S.products.filter(p => p.tonTT != null);
   if(!done.length){ toast('Chưa có SP nào được đếm','warn'); return; }
-  const ok = await confirmBox('Reset số đếm?',
-    'Xoá số đã đếm của <b>' + done.length + ' SP</b>, giữ nguyên danh sách và tồn hệ thống.<br>Có thể hoàn tác trong 12 giây.',
-    'Reset', true);
+  const ok = await confirmBox('Xoá tất cả số đã kiểm?',
+    'Xoá số đếm và lịch sử đếm của <b>' + done.length + ' SP</b> đã kiểm trong kỳ này — mọi máy đồng bộ cũng về <b>chưa kiểm</b>.<br>' +
+    'Danh sách SP và tồn hệ thống giữ nguyên. Có thể hoàn tác trong 12 giây.',
+    'Xoá ' + done.length + ' SP', true);
   if(!ok) return;
+  loading(true, 'Đang xoá số đếm...');
   const snap = done.map(p => Object.assign({}, p));
   const stamp = now();
-  const upd = S.products.map(p => Object.assign({}, p,
-    {tonTT:null, diff:null, status:p.isOut?'out':'none', checker:'', checkedAt:'', mtime:stamp}));
+  const upd = done.map(p => Object.assign({}, p,
+    {tonTT:null, diff:null, status:p.isOut?'out':'none', checker:'', checkedAt:'', mtime:stamp, log:[]}));
   await bulkPut('products', upd);
-  await reloadProducts(); render();
+  await reloadProducts(); loading(false); render();
   pushUndo('Đã reset ' + done.length + ' SP đã đếm', async () => {
     const t2 = now();
     await bulkPut('products', snap.map(p => Object.assign({}, p, {mtime:t2})));
   });
-  pushSoon();
+  toast('Đã xoá số đếm của ' + done.length + ' SP', 'ok');
+  if(syncOn()) pushNow();
 }
 async function clearAllProducts(){
   if(!isAdmin()) return needAdmin();
@@ -4393,6 +4445,7 @@ function showScanImport(fname, how, units, byP, miss, amb){
       const upd = list.map(e => {
         const p = e.p;
         const tt = add ? (p.tonTT == null ? 0 : Number(p.tonTT)) + e.q : e.q;
+        logPush(p, {a:'f', n:e.q, v:tt, c:'file ' + fname + ' · ' + e.codes.slice(0, 3).join(', ') + (e.codes.length > 3 ? '…' : '')});
         p.tonTT = tt; p.diff = tt - (Number(p.tonHT)||0);
         p.status = calcStatus(p.tonHT, tt, p.isOut);
         p.checker = S.checker || 'Import'; p.checkedAt = at; p.mtime = at;
@@ -4508,6 +4561,13 @@ async function exportExcel(){
       'Kết thúc':bc[w].t?new Date(bc[w].t).toLocaleString('vi-VN'):''}));
     if(cr.length){ const w = XLSX.utils.json_to_sheet(cr); w['!cols'] = fitCols(cr);
       XLSX.utils.book_append_sheet(wb, w, 'Theo người kiểm'); }
+
+    const lg = allLogs().filter(x => x.p.sessionId === S.sessionId || !x.p.sessionId).reverse().map(({e, p}) => ({
+      'Thời gian':e.t ? new Date(e.t).toLocaleString('vi-VN') : '', 'Người kiểm':e.u || '',
+      'Mã đã quét / nguồn':e.c || '', 'Barcode':p.barcode || '', 'Tên sản phẩm':p.tenSP || '',
+      'Thao tác':LOG_TXT[e.a] || '', 'SL lần này':e.a === 'x' ? '' : (e.a === '-' ? -e.n : e.n), 'Tổng sau':e.v == null ? '' : e.v}));
+    if(lg.length){ const w = XLSX.utils.json_to_sheet(lg); w['!cols'] = fitCols(lg);
+      XLSX.utils.book_append_sheet(wb, w, 'Lịch sử quét'); }
 
     const sf = s => String(s).replace(/[\\\/:*?"<>|]/g,'').replace(/\s+/g,'_').slice(0,36);
     const pre = (cur && cur.mode === 'cross') ? 'KiemCheo_' : 'KiemKe_';
