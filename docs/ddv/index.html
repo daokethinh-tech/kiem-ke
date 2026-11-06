@@ -3687,33 +3687,34 @@ function hideSheet(){
   // Giữ nguyên mã vừa quét: nếu mã còn nằm trong khung thì không tự bật lại bảng ngay
   paused = false; lastAt = performance.now();
 }
-/* noAdd = mở để SỬA số (nút "Sửa SL"). Còn lại là vừa quét / gõ mã một SP đã đếm rồi —
-   nghĩa là vừa thấy thêm 1 cái, nên điền sẵn số cũ + 1 thay vì bắt sửa tay. */
+/* Bảng nhập số khi quét:
+   - Ô số lượng = SỐ CỦA LẦN QUÉT NÀY (mặc định 1). Lưu là cộng vào tổng đã đếm.
+     Trước đây ô này hiện tổng cộng dồn (VD 3+1 = 4), dễ nhầm là app điền sẵn tồn hệ thống.
+   - noAdd = mở để SỬA TỔNG (nút "Sửa SL" / "Nhập lại tổng"): ô số lượng là tổng, lưu là ghi đè. */
 function showSheet(p, scannedCode, tail, noAdd){
   const ht = Number(p.tonHT)||0;
   const had = p.tonTT != null;
   const prev = had ? Number(p.tonTT) : 0;
-  const tt = had ? (noAdd ? prev : prev + 1) : 1;
-  window._sheetPrev = prev;
+  const add = !noAdd;
+  window._sheetPrev = prev; window._sheetAdd = add;
   const bl = blind();
-  const d = tt - ht;
-  let warn = '';
+  let info = '';
   if(had){
     const other = p.checker && S.checker && p.checker !== S.checker;
     const wt = p.checkedAt ? relTime(p.checkedAt) : '';
-    const who = other ? '<b>' + esc(p.checker) + '</b> đã đếm' : 'Bạn đã đếm';
-    warn = noAdd
-      ? '<div class="warnbox info">' + svg('i-info') + '<div>' + who + (wt?' '+wt:'') + ' được <b>' + prev + '</b>. Sửa lại số đúng rồi lưu.</div></div>'
-      : '<div class="warnbox ' + (other ? 'warn' : 'info') + '">' + svg(other ? 'i-alert' : 'i-plus') + '<div>' + who + (wt?' '+wt:'') +
-        ' được <b>' + prev + '</b> → lần quét này <b>cộng thêm 1 = ' + (prev + 1) + '</b>.' +
-        '<button class="btn xs sec" style="margin-top:6px;display:flex" onclick="sheetKeep()">Không cộng, giữ ' + prev + '</button></div></div>';
+    const who = other ? '<b>' + esc(p.checker) + '</b>' : 'bạn';
+    info = '<div class="warnbox ' + (other ? 'warn' : 'info') + '">' + svg(other ? 'i-alert' : 'i-info') +
+      '<div style="flex:1">Đã đếm trước <b>' + prev + '</b> (' + who + (wt ? ', ' + wt : '') + ').' +
+      '<span id="shModeTxt">' + (add ? ' Số nhập bên dưới sẽ <b>cộng thêm</b> vào.' : ' Đang <b>sửa tổng</b>.') + '</span>' +
+      '<button class="btn xs sec" id="shModeBtn" style="margin-top:6px;display:flex" onclick="sheetMode()">' +
+        (add ? 'Nhập lại tổng' : 'Cộng thêm') + '</button></div></div>';
   }
   const tailNote = scannedCode
     ? '<div class="warnbox info">' + svg('i-check') + '<div>Khớp theo <b>' + (tail || TAIL_LEN) + ' số cuối</b>: tem <span class="code">' +
       esc(scannedCode) + '</span> ↔ file <span class="code">' + esc(p.barcode||'—') + '</span></div></div>'
     : '';
   $('scanSheetBody').innerHTML =
-    warn + tailNote +
+    info + tailNote +
     '<div class="pname">' + esc(p.tenSP || 'Không tên') + '</div>' +
     '<div class="pmeta">' +
       (p.barcode ? '<span class="code">' + esc(p.barcode) + '</span>' : '') +
@@ -3722,20 +3723,16 @@ function showSheet(p, scannedCode, tail, noAdd){
       (p.isOut ? '<span class="pill purple">Ngoài HT</span>' : '') +
     '</div>' +
     '<div class="bigcount">' +
-      (blind()
-        ? '<div><div class="tagline">Tồn hệ thống</div><b style="font-size:19px;opacity:.35">••</b></div>'
-        : '<div><div class="tagline">Tồn hệ thống</div><b class="num" style="font-size:21px">' + ht + '</b></div>') +
-      '<div class="stepper">' +
+      (bl ? '<div><div class="tagline">Tồn hệ thống</div><b style="font-size:19px;opacity:.35">••</b></div>'
+          : '<div><div class="tagline">Tồn hệ thống</div><b class="num" style="font-size:21px">' + ht + '</b></div>') +
+      '<div style="text-align:center"><div class="stepper">' +
         '<button onclick="sheetStep(-1)">−</button>' +
-        '<input class="num" id="shQty" type="number" inputmode="numeric" value="' + tt + '" oninput="sheetCalc()">' +
+        '<input class="num" id="shQty" type="number" inputmode="numeric" min="0" value="' + (add ? 1 : prev) + '" oninput="sheetCalc()">' +
         '<button onclick="sheetStep(1)">+</button>' +
-      '</div>' +
-      (blind()
-        ? '<div class="rt"><div class="d" style="opacity:.3;font-size:15px">•</div>' +
-          '<div class="l"><span class="pill purple">Kiểm chéo</span></div></div>'
-        : '<div class="rt"><div class="d num" id="shDiff">' + (d>0?'+':'') + d + '</div>' +
-          '<div class="l"><span class="pill ' + (STATUS_CLS[calcStatus(ht,tt,p.isOut)]||'') + '" id="shSt">' +
-          STATUS_TXT[calcStatus(ht,tt,p.isOut)] + '</span></div></div>') +
+      '</div><div class="tagline" id="shQtyLbl" style="margin-top:4px">' + (add ? 'SL lần quét này' : 'Tổng đã đếm') + '</div></div>' +
+      '<div class="rt"><div class="tagline">Tổng đếm</div><div class="d num" id="shTot" style="color:var(--ink)"></div>' +
+        (bl ? '<div class="l"><span class="pill purple">Kiểm chéo</span></div>'
+            : '<div class="l"><span class="pill" id="shSt"></span></div>') + '</div>' +
     '</div>' +
     '<div class="actions">' +
       '<button class="btn sec" onclick="hideSheet()">Bỏ qua</button>' +
@@ -3745,14 +3742,24 @@ function showSheet(p, scannedCode, tail, noAdd){
       svg('i-list') + 'Lưu &amp; trở về danh sách</button>' +
     '<div class="tagline" style="text-align:center;margin:9px 0 4px">Người kiểm: <span class="whochip">' + esc(S.checker||'—') + '</span></div>';
   window._sheetP = p;
+  sheetCalc();
   $('scanSheet').classList.add('show');
   $('scanBottom').style.opacity = '0';
   setTimeout(() => { const i = $('shQty'); if(i){ i.focus(); i.select(); } }, 300);
 }
-function sheetKeep(){
+/* Đổi giữa "cộng thêm" và "nhập lại tổng" */
+function sheetMode(){
+  const add = window._sheetAdd = !window._sheetAdd;
   const i = $('shQty'); if(!i) return;
-  i.value = window._sheetPrev || 0;
+  i.value = add ? 1 : (window._sheetPrev || 0);
+  $('shQtyLbl').textContent = add ? 'SL lần quét này' : 'Tổng đã đếm';
+  $('shModeTxt').innerHTML = add ? ' Số nhập bên dưới sẽ <b>cộng thêm</b> vào.' : ' Đang <b>sửa tổng</b>.';
+  $('shModeBtn').textContent = add ? 'Nhập lại tổng' : 'Cộng thêm';
   sheetCalc(); i.focus(); i.select();
+}
+function sheetTotal(){
+  const q = Math.max(0, parseInt($('shQty').value)||0);
+  return window._sheetAdd ? (window._sheetPrev || 0) + q : q;
 }
 function sheetStep(d){
   const i = $('shQty'); if(!i) return;
@@ -3761,13 +3768,12 @@ function sheetStep(d){
 }
 function sheetCalc(){
   const p = window._sheetP; if(!p) return;
+  const tt = sheetTotal();
+  $('shTot').textContent = tt;
   if(blind()) return;   // kỳ chéo: không hé lộ chênh lệch trong lúc đếm
-  const tt = Math.max(0, parseInt($('shQty').value)||0);
   const ht = Number(p.tonHT)||0, d = tt - ht;
   const s = calcStatus(ht, tt, p.isOut);
-  const el = $('shDiff'); el.textContent = (d>0?'+':'') + d;
-  el.style.color = d===0?'var(--ok)':d<0?'var(--under)':'var(--over)';
-  const b = $('shSt'); b.className = 'pill ' + (STATUS_CLS[s]||''); b.textContent = STATUS_TXT[s];
+  const b = $('shSt'); b.className = 'pill ' + (STATUS_CLS[s]||''); b.textContent = STATUS_TXT[s] + (d ? ' ' + (d > 0 ? '+' : '') + d : '');
 }
 async function sheetSaveBack(){
   const ok = await sheetSave(true);
@@ -3775,9 +3781,10 @@ async function sheetSaveBack(){
 }
 async function sheetSave(quiet){
   const p = window._sheetP; if(!p) return;
-  const tt = Math.max(0, parseInt($('shQty').value)||0);
+  const tt = sheetTotal();
+  const q = Math.max(0, parseInt($('shQty').value)||0);
   await saveCount(p, tt);
-  if(!quiet) toast(String(p.tenSP||'').slice(0,30) + ' = ' + tt, 'ok', 1500);
+  if(!quiet) toast(String(p.tenSP||'').slice(0,26) + (window._sheetAdd && window._sheetPrev ? ' +' + q : '') + ' = ' + tt, 'ok', 1500);
   else toast('Đã lưu ' + String(p.tenSP||'').slice(0,22) + ' = ' + tt, 'ok', 2000);
   hideSheet();
   return true;
