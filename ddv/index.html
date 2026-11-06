@@ -201,7 +201,8 @@ textarea.input{min-height:70px;resize:vertical}
 .search input{width:100%;min-height:var(--tap);padding:10px 12px 10px 38px;border:1px solid var(--line);
   border-radius:12px;background:var(--surface);outline:none}
 .search input:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
-.search .si{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--muted)}
+.search .si{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--muted);
+  stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
 .chips{display:flex;gap:6px;overflow-x:auto;padding:1px 0 3px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .fchip{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);
@@ -323,12 +324,12 @@ textarea.input{min-height:70px;resize:vertical}
 .scan-frame{position:absolute;inset:0;z-index:8;pointer-events:none;display:grid;place-items:center}
 /* Khung ngắm khớp với vùng đọc thật (cộng thêm một ít lề). Ngoài vùng này app vẫn quét
    cả khung hình xen kẽ, nên mã lệch khung hoặc mã QR to vẫn bắt được. */
-.scan-frame .box{width:88vw;max-width:520px;height:min(42vh,290px);position:relative;transition:none;
+.scan-frame .box{width:min(68vw,290px);aspect-ratio:1/1;height:auto;position:relative;transition:none;
   box-shadow:0 0 0 100vmax rgba(0,0,0,.38);border-radius:14px}
 .scan-frame .box::after{content:'';position:absolute;left:6px;right:6px;top:50%;height:2px;
   background:linear-gradient(90deg,transparent,var(--brand) 12%,var(--brand) 88%,transparent);
   box-shadow:0 0 8px rgba(208,28,42,.8);animation:scanline 2s ease-in-out infinite}
-@keyframes scanline{0%,100%{transform:translateY(-32px);opacity:.55}50%{transform:translateY(32px);opacity:1}}
+@keyframes scanline{0%,100%{transform:translateY(-70px);opacity:.55}50%{transform:translateY(70px);opacity:1}}
 .scan-frame .box i{position:absolute;width:26px;height:26px;border:3px solid var(--brand)}
 .scan-frame .box i:nth-child(1){top:-1px;left:-1px;border-right:0;border-bottom:0;border-radius:14px 0 0 0}
 .scan-frame .box i:nth-child(2){top:-1px;right:-1px;border-left:0;border-bottom:0;border-radius:0 14px 0 0}
@@ -2753,7 +2754,8 @@ function boxInVideo(){
   const vw = v.videoWidth, vh = v.videoHeight;
   const s = Math.max(vr.width / vw, vr.height / vh);
   const ox = (vr.width - vw * s) / 2, oy = (vr.height - vh * s) / 2;
-  const px = br.width * 0.08, py = br.height * 0.12;
+  // Khung vuông gọn cho QR; vùng đọc thật rộng thêm hai bên để mã vạch dài (1D) vượt khung vẫn đọc được
+  const px = br.width * 0.28, py = br.height * 0.1;
   let x = (br.left - vr.left - ox - px) / s, y = (br.top - vr.top - oy - py) / s;
   let w = (br.width + px * 2) / s, h = (br.height + py * 2) / s;
   x = Math.max(0, x); y = Math.max(0, y);
