@@ -424,6 +424,45 @@ textarea.input{min-height:70px;resize:vertical}
 .st-done{border-left-color:var(--info)} .st-done .cq{background:var(--info-soft);border:1px solid var(--info-line)} .st-done .cq b,.st-done .cq span{color:var(--info)}
 .csent{text-align:center;font-size:11.5px;color:var(--muted);padding:12px 0 4px}
 .grplist{max-height:58vh;overflow:auto}
+
+/* bảng nhập khi quét — gọn để không che khung ngắm */
+#scanSheet .body{padding:4px 14px 0}
+#scanSheet .pname{font-size:14.5px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.shmeta{display:flex;flex-wrap:nowrap;align-items:center;gap:6px;margin:5px 0 9px;font-size:11.5px;color:var(--muted);overflow:hidden;white-space:nowrap}
+.shmeta .code{flex:0 0 auto}
+.shmeta .tm{display:inline-flex;align-items:center;gap:3px;color:var(--ok);overflow:hidden;text-overflow:ellipsis;min-width:0}
+.shmeta .tm .ic{width:13px;height:13px;flex:0 0 auto}
+.shmeta .gp{overflow:hidden;text-overflow:ellipsis;min-width:0}
+#scanSheet .bigcount{padding:9px 12px}
+.shinfo{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin-top:8px;font-size:12px;color:#0d4460;
+  background:var(--info-soft);border:1px solid var(--info-line);border-radius:10px;padding:6px 6px 6px 10px;line-height:1.35}
+.shinfo.warn{background:var(--over-soft);border-color:var(--over-line);color:#7a4708}
+.shinfo button{margin-left:auto;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 9px;font-size:12px;font-weight:700;color:var(--ink)}
+#scanSheet .actions{margin-top:10px}
+.shfoot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 2px;font-size:12px;color:var(--muted)}
+.shfoot button{border:0;background:none;color:var(--ink-2);font-weight:650;font-size:12.5px;display:inline-flex;align-items:center;gap:5px;padding:6px 2px}
+.shfoot .ic{width:15px;height:15px}
+/* đang mở bảng nhập: khung ngắm dời lên trên, nhỏ lại, để vẫn ngắm được SP kế tiếp */
+#scanview.sheeton .scan-frame{place-items:start center;padding-top:calc(max(10px,env(safe-area-inset-top)) + 58px)}
+#scanview.sheeton .scan-frame .box{width:min(46vw,190px)}
+#scanview.sheeton .scan-frame .box::after{opacity:.35}
+.scanlast{display:none;align-items:center;gap:7px;margin:0 auto 8px;max-width:560px;background:rgba(0,0,0,.5);color:#fff;
+  border-radius:11px;padding:7px 10px;font-size:12px;backdrop-filter:blur(6px)}
+.scanlast .ic{width:15px;height:15px;color:#3ddc84;flex:0 0 auto}
+.scanlast .sl-m{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(255,255,255,.88)}
+.scanlast .sl-c{font-family:ui-monospace,Menlo,monospace;color:#fff}
+.scanlast .sl-q{font-size:16px;color:#3ddc84}
+/* danh sách: mã bắn gần nhất + sắp xếp */
+.lastscan{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:9px 12px;margin-bottom:8px;cursor:pointer}
+.lastscan>.ic{width:18px;height:18px;color:var(--ok);flex:0 0 auto}
+.lastscan .ls-m{flex:1;min-width:0}
+.lastscan .ls-t{font-size:12px;color:var(--ink-2);display:flex;flex-wrap:wrap;gap:0 5px;align-items:center}
+.lastscan .ls-t .code{font-size:11px}
+.lastscan .ls-s{font-size:12.5px;font-weight:650;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lastscan .ls-q{font-size:20px;font-weight:800}
+.lhead{display:flex;align-items:center;justify-content:space-between;margin:2px 2px 6px;font-size:12px;color:var(--muted)}
+.sortbtn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:700;color:var(--ink)}
 .lglist{max-height:34vh;overflow:auto;border:1px solid var(--line);border-radius:11px;background:var(--surface-2)}
 .lgrow{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:7px 10px;border-top:1px solid var(--line-2);font-size:12px}
 .lgrow:first-child{border-top:none}
@@ -811,11 +850,12 @@ textarea.input{min-height:70px;resize:vertical}
   </div>
   <div class="qcard" id="qcard"></div>
   <div class="scan-bottom" id="scanBottom">
+    <div class="scanlast" id="scanLast"></div>
     <div class="scan-hint" id="scanHint">Đưa mã vào khung · giữ yên & đủ sáng</div>
     <div class="scan-zoom" id="scanZoom">
       <span>−</span><input type="range" id="zoomRange" min="1" max="5" step="0.1" value="1" oninput="onZoom(this.value)"><span>+</span>
     </div>
-    <button class="scan-still" onclick="scanStill()"><svg class="ic"><use href="#i-camera"/></svg>Mã mờ / nhỏ? Chụp & đọc</button>
+    <button class="scan-still" onclick="scanStill()"><svg class="ic"><use href="#i-camera"/></svg>QR khó đọc? Chụp & đọc mã chữ</button>
     <div class="sugbox" id="sugBox"></div>
     <div class="scan-manual">
       <input type="text" id="manualCode" inputmode="numeric" placeholder="Gõ 3-5 số cuối của mã" enterkeyhint="done" autocomplete="off"
@@ -863,6 +903,7 @@ let S = {                 // toàn bộ trạng thái runtime
   q: '',
   page: 0,
   histQ: '',
+  sort: (() => { try{ return localStorage.getItem('ddv:sort') || 'time'; }catch(e){ return 'time'; } })(),
   me: null,        // tài khoản đang đăng nhập
   users: [],
   assign: {},      // { 'tên nv': ['Nhóm A','Nhóm B'] }
@@ -2155,8 +2196,10 @@ function filtered(){
   return l.slice().sort((a,b) => {
     const ad = a.tonTT != null ? 1 : 0, bd = b.tonTT != null ? 1 : 0;
     if(ad !== bd) return ad - bd;             // chưa kiểm lên trước cho dễ làm
+    // SP đã đếm: mới bắn gần nhất lên đầu (theo giờ chính xác)
+    if(ad && S.sort === 'time'){ const c = String(b.checkedAt||'').localeCompare(String(a.checkedAt||'')); if(c) return c; }
     // Đang xem lệch thì lệch nhiều lên đầu
-    if(S.filter === 'lech' || S.filter === 'under' || S.filter === 'over'){
+    if(S.sort === 'diff' && (S.filter === 'lech' || S.filter === 'under' || S.filter === 'over')){
       const dd = Math.abs(b.diff || 0) - Math.abs(a.diff || 0); if(dd) return dd;
     }
     return (a.tenSP||'').localeCompare(b.tenSP||'','vi');
@@ -2218,7 +2261,12 @@ function listAreaHTML(){
   const shown = list.slice(0, (S.page + 1) * PAGE);
   if(!list.length) return emptyBox('i-box', S.q ? 'Không tìm thấy' : 'Không có sản phẩm',
       S.q ? 'Không có SP khớp "' + esc(S.q) + '" trong mục đang lọc' : (S.filter === 'left' ? 'Đã đếm hết mục này 🎉' : 'Thử đổi bộ lọc hoặc import file tồn kho'));
-  return '<div class="card listcard" id="clist">' + shown.map(countRow).join('') + '</div>' +
+  const anyDone = list.some(p => p.tonTT != null);
+  const isL = ['lech','under','over'].indexOf(S.filter) >= 0;
+  const SN = {time:'Mới bắn trước', name:'Tên A → Z', diff:'Lệch nhiều trước'};
+  return lastScanHTML() +
+    (anyDone ? '<div class="lhead"><span>' + list.length + ' SP</span><button class="sortbtn" onclick="cycleSort(' + (isL ? 1 : 0) + ')">⇅ ' + SN[S.sort === 'diff' && !isL ? 'time' : S.sort] + '</button></div>' : '') +
+    '<div class="card listcard" id="clist">' + shown.map(countRow).join('') + '</div>' +
     '<div class="csent" id="csent">' + (shown.length < list.length ? 'Đang tải thêm…' : 'Hết danh sách · ' + list.length + ' SP') + '</div>';
 }
 /* Chỉ thay phần danh sách — ô tìm kiếm giữ nguyên để bàn phím không bị đóng / đổi kiểu */
@@ -2226,6 +2274,37 @@ function refreshList(){
   const w = $('clistWrap'); if(!w) return;
   w.innerHTML = listAreaHTML();
   bindList();
+}
+function cycleSort(withDiff){
+  const order = withDiff ? ['time', 'name', 'diff'] : ['time', 'name'];
+  const cur = order.indexOf(S.sort);
+  S.sort = order[(cur + 1) % order.length]; S.page = 0;
+  try{ localStorage.setItem('ddv:sort', S.sort); }catch(e){}
+  refreshList();
+}
+/* SP được đếm gần nhất + mã tem đã bắn lần đó */
+function lastScanned(){
+  let best = null;
+  S.products.forEach(p => { if(p.tonTT != null && p.checkedAt && (!best || p.checkedAt > best.checkedAt)) best = p; });
+  if(!best) return null;
+  const L = Array.isArray(best.log) && best.log.length ? best.log[best.log.length - 1] : null;
+  return {p:best, code:(L && L.c) || best.barcode || best.maSP || '', who:best.checker || ''};
+}
+function lastScanHTML(){
+  const x = lastScanned(); if(!x) return '';
+  return '<div class="lastscan" onclick="editQty(' + JSON.stringify(x.p.key).replace(/"/g,'&quot;') + ')">' + svg('i-clock') +
+    '<div class="ls-m"><div class="ls-t">Bắn gần nhất <b class="num">' + tFull(x.p.checkedAt) + '</b>' + (x.who ? ' · ' + esc(x.who) : '') +
+    ' · <span class="code">' + esc(x.code) + '</span></div><div class="ls-s">' + esc(x.p.tenSP || '—') + '</div></div>' +
+    '<div class="ls-q num">' + x.p.tonTT + '</div></div>';
+}
+/* Màn quét: dòng "vừa lưu" để biết mã cuối đã bắn là gì, lúc nào */
+function showLastScan(){
+  const el = $('scanLast'); if(!el) return;
+  const x = lastScanned();
+  if(!x){ el.innerHTML = ''; el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  el.innerHTML = svg('i-check') + '<span class="sl-m"><b class="num">' + tFull(x.p.checkedAt) + '</b> · <span class="sl-c">' + esc(x.code) + '</span> · ' +
+    esc(String(x.p.tenSP || '').slice(0, 40)) + '</span><b class="sl-q num">' + x.p.tonTT + '</b>';
 }
 /* Giờ đếm: hôm nay chỉ hiện giờ:phút:giây, ngày khác thêm ngày/tháng */
 function tFull(t){
@@ -3190,9 +3269,37 @@ function grab(full, maxW){
   camCx.drawImage(v, r.x, r.y, r.w, r.h, 0, 0, W, H);
   return {W, H};
 }
+let camHitAt = 0, _lastHard = false;   // _lastHard: mã vừa bắn chỉ đọc được nhờ bước sửa QR
+function grabWide(k, maxW){
+  const v = $('camVideo'), b = boxInVideo();
+  const s = Math.max(b.w, b.h) * k, cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+  const w = Math.min(v.videoWidth, s), h = Math.min(v.videoHeight, s);
+  const r = {x:Math.max(0, Math.min(v.videoWidth - w, cx - w / 2)), y:Math.max(0, Math.min(v.videoHeight - h, cy - h / 2)), w, h};
+  const sc = Math.min(1, maxW / r.w);
+  const W = Math.max(1, Math.round(r.w * sc)), H = Math.max(1, Math.round(r.h * sc));
+  if(camCv.width !== W || camCv.height !== H){ camCv.width = W; camCv.height = H; }
+  camCx.drawImage(v, r.x, r.y, r.w, r.h, 0, 0, W, H);
+  return {W, H};
+}
 async function decodeFrame(){
   const k = camFrame % 4;
   let W, H, list = [];
+  // Sửa QR (in sát mép / mất góc): thỉnh thoảng khi không đọc ra gì; dày hơn khi đang theo dõi
+  // mã vừa bắn thuộc loại này, để biết chắc nó còn trong khung hay đã rời đi
+  const wantFix = camEngine !== 'zxing' && (paused ? (_lastHard && camFrame % 2 === 0)
+    : (camFrame % 6 === 5 && (_lastHard || performance.now() - camHitAt > 700)));
+  if(wantFix && await (wasmReady || Promise.resolve(false))){
+    // vùng rộng gấp ~1,8 khung ngắm (QR tem thường lệch / to hơn khung), xen kẽ cả khung hình
+    ({W, H} = (camFrame % 12 === 5) ? grabWide(1.8, 900) : grab(true, 960));
+    list = await qrRepairRead(camCx.getImageData(0, 0, W, H), null, false);
+    list.forEach(r => r.hard = true);
+    if(!list.length && paused && _lastHard){      // khung hẹp không thấy → thử cả khung hình
+      ({W, H} = grab(true, 960));
+      list = await qrRepairRead(camCx.getImageData(0, 0, W, H), null, false);
+      list.forEach(r => r.hard = true);
+    }
+    return {list, W, H};
+  }
   if(k === 3 && camEngine !== 'zxing' && await (wasmReady || Promise.resolve(false))){
     // Ảnh hơi nhoè (camera iPhone đang lấy nét lại): thu nhỏ vùng khung trước khi đọc làm nét cạnh rõ hơn
     ({W, H} = grab(false, 640));
@@ -3231,7 +3338,9 @@ async function camLoop(ts){
   if(!scanning) return;
   const v = $('camVideo');
   const gap = Math.max(camEngine === 'native' ? 40 : 45, camDecAvg * 1.15);
-  if(!paused && !camBusy && camEngine && v && v.readyState >= 2 && v.videoWidth && ts - camLastTick >= gap){
+  // Đang mở bảng nhập số: KHÔNG nhận mã mới, chỉ đọc chậm (4 lần/giây) để biết mã cũ đã rời khung chưa
+  const g2 = paused ? Math.max(gap, 250) : gap;
+  if(!stillBusy && !camBusy && camEngine && v && v.readyState >= 2 && v.videoWidth && ts - camLastTick >= g2){
     camBusy = true; camLastTick = ts; camFrame++;
     const t0 = performance.now();
     try{
@@ -3249,27 +3358,35 @@ function onFrame(list, W, H){
   const box = $('scanBox');
   if(!list || !list.length){ if(box) box.classList.remove('seen'); return; }
   if(box) box.classList.add('seen');
-  // Tem thường có cả QR lẫn mã vạch: ưu tiên mã ra được sản phẩm, rồi tới mã gần tâm khung
+  camHitAt = performance.now();
+  // Tem thường có cả QR lẫn mã vạch: ưu tiên mã ra được sản phẩm, rồi tới mã gần tâm khung.
+  // Mã vừa quét còn nằm trong hình thì bỏ qua, xét tiếp mã khác (VD đã đưa SP mới vào khung).
   list.sort((a, b) => Math.hypot(a.cx - W/2, a.cy - H/2) - Math.hypot(b.cx - W/2, b.cy - H/2));
-  const pick = list.find(r => resolveCode(r.text).list.length) || list[0];
-  acceptRead(pick.text, pick.format);
+  const hit = list.filter(r => resolveCode(r.text).list.length);
+  const pool = hit.length ? hit : list;
+  list.forEach(r => { if(pool.indexOf(r) < 0) _seen.set(String(r.text).trim(), camHitAt); });
+  for(const r of pool) if(acceptRead(r.text, r.format)){ _lastHard = !!r.hard; break; }
 }
+/* Lần cuối thấy từng mã trong hình (kể cả lúc đang mở bảng nhập số) */
+const _seen = new Map();
+const GONE_MS = 1000;
 function acceptRead(text, fmt){
   const t = performance.now();
   text = String(text || '').trim();
-  if(!text) return;
-  if(!STRONG_FMT.test(normFmt(fmt)) && !(pendCode === text && t - pendAt < 1500)){ pendCode = text; pendAt = t; return; }
+  if(!text) return false;
+  const prevSeen = _seen.get(text) || 0;
+  _seen.set(text, t);
+  if(_seen.size > 60) _seen.delete(_seen.keys().next().value);
+  if(!STRONG_FMT.test(normFmt(fmt)) && !(pendCode === text && t - pendAt < 1500)){ pendCode = text; pendAt = t; return false; }
   pendCode = text; pendAt = t;
-  // Mã còn nằm trong khung liên tục thì không tính là lần quét mới — phải đưa ra rồi đưa vào lại
-  const still = seenCode === text && t - seenAt < 450;
   seenCode = text; seenAt = t;
-  if(paused) return;
-  // Chế độ +1 tự cộng không hỏi → mã phải rời khung rồi vào lại mới tính tiếp.
-  // Chế độ hỏi số lượng có bảng xác nhận → mã cùng loại (các hộp giống hệt nhau đặt cạnh nhau)
-  // vẫn nhận lại sau 2,5 giây dù chưa rời khung, khỏi phải lia ra lia vào.
-  if(text === lastCode && (t - lastAt < 1300 || (still && (scanMode === 'plus' || t - lastAt < 2500)))) return;
+  if(paused) return false;
+  // Mã vừa quét: phải RỜI KHUNG ít nhất 1 giây rồi đưa vào lại mới tính là lần quét mới.
+  // Đứng yên trên mã cũ sau khi bấm Lưu sẽ không bị bắn lại. Mã khác thì nhận ngay.
+  if(text === lastCode && (t - prevSeen < GONE_MS || t - lastAt < 1300)) return false;
   lastCode = text; lastAt = t;
   onScan(text);
+  return true;
 }
 
 /* ---------- Mở / đóng màn hình quét ---------- */
@@ -3278,7 +3395,7 @@ async function startScan(){
   if(!S.me){ toast('Cần đăng nhập trước khi quét','warn'); return; }
   $('scanview').classList.add('on');
   scanning = true; paused = false; torch = false;
-  lastCode = ''; lastAt = 0; seenCode = ''; pendCode = ''; quickN = 0;
+  lastCode = ''; lastAt = 0; seenCode = ''; pendCode = ''; quickN = 0; _seen.clear();
   $('torchBtn').classList.add('hidden'); $('torchBtn').classList.remove('on'); $('torchTxt').textContent = 'Đèn';
   $('scanZoom').style.display = 'none';
   $('manualCode').value = '';
@@ -3290,7 +3407,8 @@ async function startScan(){
     ? '<b style="color:#d8b4fe">KIỂM CHÉO</b> · tồn hệ thống đang ẩn · đếm theo thực tế'
     : 'Đưa mã vào khung · cách 15–25 cm · chạm màn hình để lấy nét';
   if(isInApp()) toast('Đang mở trong app — camera có thể không chạy, nên dùng Chrome/Safari','warn',4200);
-  try{ const C = window.AudioContext||window.webkitAudioContext; if(C){ window._ac = window._ac||new C(); if(window._ac.state==='suspended') window._ac.resume(); } }catch(e){}
+  sndUnlock();
+  showLastScan();
 
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
     $('engTag').textContent = 'Không có camera';
@@ -3318,6 +3436,8 @@ async function startScan(){
   keepAwake(true);
   startWatch();
   requestAnimationFrame(camLoop);
+  // tải sẵn bộ đọc chữ trong nền để lần bấm "Chụp & đọc" đầu tiên không phải chờ
+  setTimeout(() => { if(scanning && !(navigator.connection && navigator.connection.saveData)) ocrWorker().catch(() => {}); }, 3500);
 }
 async function stopScan(){
   scanning = false; paused = false; torch = false; _findMode = false;
@@ -3350,31 +3470,113 @@ function flashOK(bad){
   if(bad) f.classList.add('bad');
   setTimeout(() => f.classList.remove('on','bad'), 260);
 }
-function buzz(pattern){
+/* ---- Rung ----
+   Android: navigator.vibrate. iPhone: Safari không có lệnh rung cho web — dùng mẹo công tắc
+   <input switch> (iOS 17.4+): bật/tắt công tắc này máy tự "tạch" rung nhẹ (Taptic). Apple có
+   thể chặn khi không phải do ngón tay chạm, nên lúc bấm Lưu chắc rung, lúc camera tự bắt mã
+   tuỳ phiên bản iOS. */
+let _hapL = null;
+function hapticIOS(){
   try{
-    if(navigator.vibrate) return navigator.vibrate(pattern || [45,28,72]);
+    if(!_hapL){
+      const i = document.createElement('input'); i.type = 'checkbox'; i.setAttribute('switch', ''); i.id = 'hapSw';
+      i.setAttribute('aria-hidden', 'true'); i.tabIndex = -1; i.style.display = 'none';
+      const l = document.createElement('label'); l.htmlFor = 'hapSw'; l.style.display = 'none';
+      document.body.append(i, l); _hapL = l;
+    }
+    _hapL.click();
   }catch(e){}
+}
+function buzz(pattern){
+  pattern = pattern || [45,28,72];
+  if(isIOS()){ hapticIOS(); if(pattern.length > 2) setTimeout(hapticIOS, 120); return true; }
+  try{ if(navigator.vibrate) return navigator.vibrate(pattern); }catch(e){}
   return false;
+}
+/* ---- Tiếng bíp ----
+   iPhone hay "mất tiếng" sau khi qua app khác vì AudioContext bị treo ở trạng thái interrupted
+   (có khi vẫn báo running mà không ra tiếng). Cách xử lý:
+   - Có sẵn 2 file âm thanh nhỏ (bíp đúng / bíp sai) phát bằng <audio>, được "mở khoá" ở lần chạm đầu.
+   - Quay lại app → bỏ AudioContext cũ, lần chạm kế tiếp tạo cái mới; trong lúc chờ dùng <audio>. */
+const Snd = {ac:null, el:{}, url:{}, fresh:false};
+function sndWav(tones){
+  const sr = 22050; let n = 0; tones.forEach(t => n += Math.round(sr * t[1]));
+  const buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const ws = (o, x) => { for(let i = 0; i < x.length; i++) v.setUint8(o + i, x.charCodeAt(i)); };
+  ws(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); ws(8, 'WAVE'); ws(12, 'fmt '); v.setUint32(16, 16, true);
+  v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true);
+  v.setUint16(32, 2, true); v.setUint16(34, 16, true); ws(36, 'data'); v.setUint32(40, n * 2, true);
+  let o = 44;
+  tones.forEach(([f, d, vol]) => {
+    const k = Math.round(sr * d);
+    for(let i = 0; i < k; i++){
+      const env = Math.min(1, i / (sr * 0.006), (k - i) / (sr * 0.012));
+      const sq = Math.sin(2 * Math.PI * f * i / sr) >= 0 ? 1 : -1;
+      v.setInt16(o, Math.round(sq * env * vol * 12000), true); o += 2;
+    }
+  });
+  return URL.createObjectURL(new Blob([buf], {type:'audio/wav'}));
+}
+function sndEl(k){
+  let el = Snd.el[k];
+  if(!el){
+    Snd.url[k] = Snd.url[k] || sndWav(k === 'ok' ? [[1180, .075, .9], [1760, .1, 1]] : [[420, .13, .9], [300, .17, .9]]);
+    el = Snd.el[k] = new Audio(Snd.url[k]); el.preload = 'auto'; el.setAttribute('playsinline', '');
+  }
+  return el;
+}
+function sndUnlock(){
+  try{
+    const C = window.AudioContext || window.webkitAudioContext;
+    if(C && (!Snd.ac || Snd.ac.state === 'closed')){ Snd.ac = new C(); Snd.fresh = true; }
+    const a = Snd.ac;
+    if(a && a.state !== 'running'){
+      a.resume().catch(() => {});
+      const b = a.createBuffer(1, 1, 22050), src = a.createBufferSource(); src.buffer = b; src.connect(a.destination); src.start(0);
+    }
+  }catch(e){}
+  ['ok', 'bad'].forEach(k => {
+    const el = sndEl(k);
+    if(el._ok || el._busy) return;
+    el._busy = true; el.muted = true;
+    const pr = el.play();
+    const done = ok => { try{ el.pause(); el.currentTime = 0; }catch(e){} el.muted = false; el._busy = false; if(ok) el._ok = true; };
+    if(pr && pr.then) pr.then(() => done(true)).catch(() => done(false)); else done(true);
+  });
+}
+['touchend', 'pointerup', 'click', 'keydown'].forEach(ev => document.addEventListener(ev, sndUnlock, {capture:true, passive:true}));
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState !== 'visible') return;
+  // AudioContext sau khi bị gián đoạn trên iPhone không đáng tin nữa → bỏ, chạm lần tới tạo lại
+  if(Snd.ac){ try{ Snd.ac.close(); }catch(e){} Snd.ac = null; }
+  Object.values(Snd.el).forEach(el => { el._ok = false; });
+});
+window.addEventListener('pageshow', () => { Object.values(Snd.el).forEach(el => { el._ok = false; }); });
+function sndPlay(bad){
+  const a = Snd.ac;
+  if(a && a.state === 'running'){
+    try{
+      const mk = (f, t0, dur, vol) => {
+        const o = a.createOscillator(), g = a.createGain();
+        o.type = 'square'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, a.currentTime + t0);
+        g.gain.exponentialRampToValueAtTime(vol, a.currentTime + t0 + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + t0 + dur);
+        o.connect(g); g.connect(a.destination);
+        o.start(a.currentTime + t0); o.stop(a.currentTime + t0 + dur + 0.01);
+      };
+      if(bad){ mk(420, 0, 0.13, 0.22); mk(300, 0.14, 0.17, 0.22); }
+      else { mk(1180, 0, 0.075, 0.2); mk(1760, 0.075, 0.1, 0.23); }
+      return;
+    }catch(e){}
+  }
+  if(a) a.resume().catch(() => {});
+  try{ const el = sndEl(bad ? 'bad' : 'ok'); el.muted = false; el.currentTime = 0; const pr = el.play(); if(pr && pr.catch) pr.catch(() => {}); }catch(e){}
 }
 function beep(bad){
   buzz(bad ? [90,60,90] : [45,28,72]);
   flashOK(bad);
-  try{
-    const C = window.AudioContext||window.webkitAudioContext; if(!C) return;
-    window._ac = window._ac || new C();
-    const a = window._ac; if(a.state==='suspended') a.resume();
-    const mk = (f, t0, dur, vol) => {
-      const o = a.createOscillator(), g = a.createGain();
-      o.type = 'square'; o.frequency.value = f;
-      g.gain.setValueAtTime(0.0001, a.currentTime + t0);
-      g.gain.exponentialRampToValueAtTime(vol, a.currentTime + t0 + 0.012);
-      g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + t0 + dur);
-      o.connect(g); g.connect(a.destination);
-      o.start(a.currentTime + t0); o.stop(a.currentTime + t0 + dur + 0.01);
-    };
-    if(bad){ mk(420, 0, 0.13, 0.22); mk(300, 0.14, 0.17, 0.22); }
-    else { mk(1180, 0, 0.075, 0.2); mk(1760, 0.075, 0.1, 0.23); }
-  }catch(e){}
+  sndPlay(bad);
 }
 
 /* ---------- Khớp mã ----------
@@ -3382,7 +3584,7 @@ function beep(bad){
    ở phần đuôi. Trước đây app chỉ so 5 số cuối — dễ khớp nhầm sang SP khác có cùng 5 số đuôi.
    Giờ so từ dài tới ngắn (8 → 7 → 6 → 5 số), lấy mức dài nhất có kết quả, nên tem chuẩn
    (4 số đầu + 8 số cuối của barcode) luôn khớp đúng 1 SP. */
-const APP_VER = '2026.11.06-8';
+const APP_VER = '2026.11.06-9';
 const TAIL_LENS = [8, 7, 6, 5];
 const TAIL_LEN = 5;
 const digits = s => String(s == null ? '' : s).replace(/\D/g, '');
@@ -3626,6 +3828,7 @@ async function saveCount(p, tt, info){
   const i = S.products.findIndex(x => x.key === p.key);
   if(i >= 0) S.products[i] = p;
   pushSoon();
+  if(scanning) showLastScan();
 }
 async function quickAdd(p, scanned, tail){
   const prev = p.tonTT == null ? null : Number(p.tonTT);
@@ -3685,6 +3888,359 @@ function hideQuick(){
   window._quickP = null;
 }
 
+/* ---------- Đọc QR in tràn mép tem / mất góc / rách / dơ ----------
+   Bộ đọc QR cần 3 ô vuông định vị ở 3 góc, mỗi ô phải có VIỀN TRẮNG bao quanh. Tem cửa hàng
+   hay in QR sát mép tem, dán lên hộp màu sậm → ô định vị dính liền nền tối, mọi bộ đọc bỏ cuộc
+   dù mã còn nguyên. Hoặc tem rách / dơ mất hẳn 1 góc. Cách làm:
+   1. Tự dò ô định vị (sọc 1:1:3:1:1), chấp nhận 1 phía dính nền tối.
+   2. Có đủ 3 ô → biết đúng khung QR. Chỉ còn 2 ô → suy ra các chỗ có thể là ô bị mất.
+   3. Tô trắng mọi thứ ngoài khung QR (dựng lại viền trắng), vẽ bù ô định vị bị mất, rồi đọc lại.
+   Phần dữ liệu bị rách thì mã sửa lỗi của QR tự bù. */
+let _qrBuf = null, _qrPcv = null;
+function qrBinarize(img){
+  const {data, width:W, height:H} = img;
+  const N = W * H;
+  if(!_qrBuf || _qrBuf.n !== N || _qrBuf.I.length !== (W + 1) * (H + 1))
+    _qrBuf = {n:N, g:new Uint8Array(N), b:new Uint8Array(N), I:new Float64Array((W + 1) * (H + 1))};
+  const g = _qrBuf.g, b = _qrBuf.b, I = _qrBuf.I;
+  for(let i = 0, j = 0; i < N; i++, j += 4) g[i] = (data[j] * 77 + data[j+1] * 150 + data[j+2] * 29) >> 8;
+  // ngưỡng thích nghi theo trung bình vùng (chịu được bóng đổ / sáng lệch)
+  for(let x = 0; x <= W; x++) I[x] = 0;
+  for(let y = 0; y < H; y++){
+    let row = 0; I[(y + 1) * (W + 1)] = 0;
+    for(let x = 0; x < W; x++){ row += g[y * W + x]; I[(y + 1) * (W + 1) + x + 1] = I[y * (W + 1) + x + 1] + row; }
+  }
+  const r = Math.max(6, Math.round(Math.min(W, H) / 14));
+  for(let y = 0; y < H; y++){
+    const y0 = Math.max(0, y - r), y1 = Math.min(H, y + r + 1);
+    for(let x = 0; x < W; x++){
+      const x0 = Math.max(0, x - r), x1 = Math.min(W, x + r + 1);
+      const s = I[y1 * (W + 1) + x1] - I[y0 * (W + 1) + x1] - I[y1 * (W + 1) + x0] + I[y0 * (W + 1) + x0];
+      b[y * W + x] = g[y * W + x] < s / ((x1 - x0) * (y1 - y0)) * 0.9 ? 1 : 0;
+    }
+  }
+  return {b, W, H};
+}
+/* c = 5 đoạn đen-trắng-đen-trắng-đen. relax: cho phép 1 đoạn đen ngoài cùng dài bất thường
+   (ô định vị dính liền nền tối vì tem không có viền trắng). Trả về cỡ 1 module hoặc 0. */
+function qrRatio(c, relax){
+  const m = (c[1] + c[2] + c[3]) / 5;
+  if(m < 1) return 0;
+  const v = m * 0.62;
+  if(Math.abs(m - c[1]) >= v || Math.abs(3 * m - c[2]) >= 3 * v || Math.abs(m - c[3]) >= v) return 0;
+  const a = Math.abs(m - c[0]) < v, e = Math.abs(m - c[4]) < v;
+  if(a && e) return m;
+  if(relax && (a || e) && Math.min(c[0], c[4]) > m * 0.5) return m;
+  return 0;
+}
+/* Đo 5 đoạn qua (x,y) theo hướng (dx,dy): độ lệch tâm của đoạn đen giữa + cỡ module */
+function qrCross(B, x, y, dx, dy){
+  const {b, W, H} = B, at = (px, py) => px >= 0 && py >= 0 && px < W && py < H ? b[py * W + px] : -1;
+  if(at(x, y) !== 1) return null;
+  const c = [0, 0, 0, 0, 0], lim = 300;
+  let px = x, py = y, k;
+  while(at(px, py) === 1 && c[2] < lim){ c[2]++; px -= dx; py -= dy; }
+  const back = c[2];
+  k = 0; while(at(px, py) === 0 && k++ < lim){ c[1]++; px -= dx; py -= dy; }
+  k = 0; while(at(px, py) === 1 && k++ < lim){ c[0]++; px -= dx; py -= dy; }
+  px = x + dx; py = y + dy;
+  while(at(px, py) === 1 && c[2] < lim * 2){ c[2]++; px += dx; py += dy; }
+  k = 0; while(at(px, py) === 0 && k++ < lim){ c[3]++; px += dx; py += dy; }
+  k = 0; while(at(px, py) === 1 && k++ < lim){ c[4]++; px += dx; py += dy; }
+  const m = qrRatio(c, true);
+  if(!m) return null;
+  return {off:((c[2] - back) - (back - 1)) / 2, m};
+}
+function qrFinders(B){
+  const {b, W, H} = B, found = [];
+  const step = Math.max(1, Math.round(H / 500));
+  const runs = [];
+  for(let y = 0; y < H; y += step){
+    const row = y * W;
+    runs.length = 0;
+    let col = b[row], len = 0, st = 0;
+    for(let x = 0; x <= W; x++){
+      const v = x < W ? b[row + x] : -1;
+      if(v === col) len++;
+      else { runs.push(col, st, len); col = v; st = x; len = 1; }
+    }
+    for(let i = 0; i + 14 < runs.length; i += 3){
+      if(runs[i] !== 1) continue;
+      const c = [runs[i+2], runs[i+5], runs[i+8], runs[i+11], runs[i+14]];
+      if(!qrRatio(c, true)) continue;
+      let cx = Math.round(runs[i+7] + runs[i+8] / 2);
+      const v = qrCross(B, cx, y, 0, 1); if(!v) continue;
+      const cy = Math.round(y + v.off);
+      const h = qrCross(B, cx, cy, 1, 0); if(!h) continue;
+      cx = Math.round(cx + h.off);
+      // thêm 2 đường chéo để loại chữ / sọc ngẫu nhiên
+      if(!qrCross(B, cx, cy, 1, 1) && !qrCross(B, cx, cy, 1, -1)) continue;
+      const m = (v.m + h.m) / 2;
+      const hit = found.find(f => Math.abs(f.x - cx) <= f.m * 1.5 && Math.abs(f.y - cy) <= f.m * 1.5);
+      if(hit){ hit.x = (hit.x * hit.n + cx) / (hit.n + 1); hit.y = (hit.y * hit.n + cy) / (hit.n + 1); hit.m = (hit.m * hit.n + m) / (hit.n + 1); hit.n++; }
+      else found.push({x:cx, y:cy, m, n:1});
+    }
+  }
+  return found.filter(f => f.n >= 2).sort((a, b) => b.n - a.n).slice(0, 6);
+}
+/* Khoảng cách 2 tâm ô định vị kề nhau = (cỡ mã − 7) module = 14, 18, 22… → làm tròn về cỡ hợp lệ */
+function qrSpan(d, m){
+  const r = d / m;
+  if(r < 11 || r > 82) return 0;
+  return 14 + 4 * Math.max(0, Math.round((r - 14) / 4));
+}
+/* Bộ 3 tâm: K = góc vuông, P và Q là 2 ô kề. miss = ô phải vẽ bù ('K','P','Q' hoặc null) */
+function qrTriples(F){
+  const T = [];
+  const sim = (a, b) => Math.max(a.m, b.m) / Math.min(a.m, b.m) < 1.6;
+  // đủ 3 ô
+  for(let i = 0; i < F.length; i++) for(let j = 0; j < F.length; j++) for(let k = j + 1; k < F.length; k++){
+    if(i === j || i === k) continue;
+    const K = F[i], P = F[j], Q = F[k];
+    if(!sim(K, P) || !sim(K, Q)) continue;
+    const ax = P.x - K.x, ay = P.y - K.y, bx = Q.x - K.x, by = Q.y - K.y;
+    const la = Math.hypot(ax, ay), lb = Math.hypot(bx, by);
+    if(Math.abs((ax * bx + ay * by) / (la * lb)) > 0.3 || la / lb > 1.35 || lb / la > 1.35) continue;
+    T.push({K, P, Q, miss:null});
+  }
+  // chỉ còn 2 ô → đoán chỗ ô thứ 3
+  for(let i = 0; i < F.length; i++) for(let j = i + 1; j < F.length; j++){
+    const A = F[i], Bf = F[j];
+    if(!sim(A, Bf)) continue;
+    const m = (A.m + Bf.m) / 2, dx = Bf.x - A.x, dy = Bf.y - A.y, d = Math.hypot(dx, dy);
+    if(qrSpan(d, m)){                         // 2 ô kề nhau (cùng cạnh)
+      for(const [K, P] of [[A, Bf], [Bf, A]]) for(const s of [1, -1]){
+        const ux = (P.x - K.x), uy = (P.y - K.y);
+        T.push({K, P, Q:{x:K.x - uy * s, y:K.y + ux * s, m}, miss:'Q'});
+      }
+    }
+    if(qrSpan(d / Math.SQRT2, m)){            // 2 ô nằm chéo nhau
+      const mx = (A.x + Bf.x) / 2, my = (A.y + Bf.y) / 2;
+      for(const s of [1, -1]) T.push({K:{x:mx - dy / 2 * s, y:my + dx / 2 * s, m}, P:A, Q:Bf, miss:'K'});
+    }
+  }
+  // bộ 3 trùng với ô đã thấy thì không cần đoán
+  return T.filter(t => !t.miss || !F.some(f => Math.hypot(f.x - t[t.miss].x, f.y - t[t.miss].y) < f.m * 2.5));
+}
+/* Dò lại tâm ô bị thiếu quanh chỗ đoán (±2 module) bằng cách so mẫu 7×7 trên ảnh nhị phân.
+   Ô định vị thật vẫn còn (chỉ là bộ dò không bắt được vì dính nền) → dùng luôn, khỏi vẽ đè. */
+function qrRefine(B, t){
+  const which = t.miss; if(!which) return t;
+  const m = t.P.m;
+  const geo = (X) => {
+    const K = which === 'K' ? X : t.K, P = t.P, Q = which === 'Q' ? X : t.Q;
+    const S = qrSpan(Math.hypot(P.x - K.x, P.y - K.y), m) || 14;
+    return {U:{x:(P.x - K.x) / S, y:(P.y - K.y) / S}, V:{x:(Q.x - K.x) / S, y:(Q.y - K.y) / S}};
+  };
+  const X0 = t[which];
+  const {U, V} = geo(X0);
+  const {b, W, H} = B;
+  const score = (x, y) => {
+    let ok = 0;
+    for(let i = -3; i <= 3; i++) for(let j = -3; j <= 3; j++){
+      const px = Math.round(x + i * U.x + j * V.x), py = Math.round(y + i * U.y + j * V.y);
+      if(px < 0 || py < 0 || px >= W || py >= H) continue;
+      const r = Math.max(Math.abs(i), Math.abs(j));
+      if((b[py * W + px] === 1) === (r !== 2)) ok++;
+    }
+    return ok / 49;
+  };
+  let best = {s:score(X0.x, X0.y), x:X0.x, y:X0.y};
+  for(let a = -2; a <= 2; a += 0.25) for(let c = -2; c <= 2; c += 0.25){
+    const x = X0.x + a * U.x + c * V.x, y = X0.y + a * U.y + c * V.y, sc = score(x, y);
+    if(sc > best.s) best = {s:sc, x, y};
+  }
+  const out = Object.assign({}, t);
+  if(best.s >= 0.86){ out[which] = {x:best.x, y:best.y, m}; out.miss = null; out.real = true; }
+  return out;
+}
+/* Ảnh mới: tô trắng ngoài khung QR (+ lề trắng), vẽ bù ô định vị bị mất */
+function qrPatched(src, t, pad, dK, marg, all){
+  const K = {x:t.K.x + (dK ? dK[0] : 0), y:t.K.y + (dK ? dK[1] : 0)};
+  const m = (t.P.m + (t.Q.m || t.P.m)) / 2;
+  const nP = qrSpan(Math.hypot(t.P.x - K.x, t.P.y - K.y), m), nQ = qrSpan(Math.hypot(t.Q.x - K.x, t.Q.y - K.y), m);
+  if(!nP || !nQ) return null;
+  const S = 14 + 4 * Math.max(0, Math.round(((nP + nQ) / 2 - 14) / 4));   // số module giữa 2 tâm (cùng cỡ)
+  const U = {x:(t.P.x - K.x) / S, y:(t.P.y - K.y) / S}, V = {x:(t.Q.x - K.x) / S, y:(t.Q.y - K.y) / S};
+  const N = S + 7;
+  const cv = _qrPcv || (_qrPcv = document.createElement('canvas'));
+  cv.width = src.width + pad * 2; cv.height = src.height + pad * 2;
+  const cx = cv.getContext('2d', {willReadFrequently:true});
+  cx.setTransform(1, 0, 0, 1, 0, 0);
+  cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height);
+  cx.putImageData(src, pad, pad);
+  // hệ toạ độ theo module, gốc = tâm ô định vị K
+  cx.setTransform(U.x, U.y, V.x, V.y, K.x + pad, K.y + pad);
+  const lo = -3.5 - marg, hi = N - 3.5 + marg;
+  cx.beginPath();
+  cx.rect(-1e4, -1e4, 2e4, 2e4);
+  cx.moveTo(lo, lo); cx.lineTo(lo, hi); cx.lineTo(hi, hi); cx.lineTo(hi, lo); cx.closePath();
+  cx.fillStyle = '#fff'; cx.fill('evenodd');
+  // vẽ ô định vị chuẩn: ô bị mất, hoặc cả 3 ô (khi ô thật bị mép tem cắt lẹm / dính nền)
+  const draw = c => {
+    const sq = (h, col) => { cx.fillStyle = col; cx.fillRect(c[0] - h, c[1] - h, h * 2, h * 2); };
+    sq(4.5, '#fff'); sq(3.5, '#000'); sq(2.5, '#fff'); sq(1.5, '#000');
+  };
+  if(all) [[0, 0], [S, 0], [0, S]].forEach(draw);
+  else if(t.miss) draw(t.miss === 'K' ? [0, 0] : t.miss === 'P' ? [S, 0] : [0, S]);
+  cx.setTransform(1, 0, 0, 1, 0, 0);
+  return cx.getImageData(0, 0, cv.width, cv.height);
+}
+async function qrRepairRead(img, onTry, deep){
+  const B = qrBinarize(img);
+  const F = qrFinders(B);
+  if(F.length < 2 || !wasmReady || !(await wasmReady)) return [];
+  const T = qrTriples(F).map(t => qrRefine(B, t)).sort((a, b) => (a.miss ? 1 : 0) - (b.miss ? 1 : 0)).slice(0, 24);
+  if(!T.length) return [];
+  const pad = Math.round(Math.max(...F.map(f => f.m)) * 10);
+  const opt = {formats:['QRCode'], tryHarder:true, tryRotate:false, tryInvert:false, tryDownscale:false, maxNumberOfSymbols:1};
+  let tries = 0;
+  const go = async (t, dK, marg, all) => {
+    if(!deep && ++tries > 10) return [];           // quét liên tục: giới hạn để camera không giật
+    if(onTry) onTry();
+    const im = qrPatched(img, t, pad, dK, marg, all);
+    return im ? await wasmRead(im, opt) : [];
+  };
+  // lượt 1: mất góc → chỉ vẽ bù (không tô nền); đủ 3 góc → tô trắng quanh khung QR
+  for(const t of T){ const r = await go(t, null, t.miss ? 60 : 0.35); if(r.length) return r; }
+  // lượt 2: vẽ lại cả 3 ô định vị + tô trắng sát mép (QR bị mép tem cắt lẹm)
+  for(const t of T.slice(0, 10)){ const r = await go(t, null, 0, true); if(r.length) return r; }
+  for(const t of T.filter(t => t.miss).slice(0, 8)){ const r = await go(t, null, 0.35); if(r.length) return r; }
+  if(!deep) return [];
+  // Ảnh chụp nghiêng làm khung suy ra lệch chút → nới lề / nhích ô vẽ bù
+  for(const t of T.slice(0, 8)) for(const [marg, all] of [[0.9, false], [0.1, false], [-0.25, true], [0.4, true]]){ const r = await go(t, null, marg, all); if(r.length) return r; }
+  const J = [[0.6,0],[-0.6,0],[0,0.6],[0,-0.6],[0.6,0.6],[-0.6,-0.6]];
+  for(const t of T.filter(t => t.miss === 'K').slice(0, 4)) for(const j of J){
+    const m = t.P.m, r = await go(t, [j[0] * m, j[1] * m], 60); if(r.length) return r;
+  }
+  return [];
+}
+
+/* ---------- Đọc CHỮ in trên tem (OCR) ----------
+   Tem cửa hàng in mã dạng "1010BF-00054953": 8 số sau dấu gạch = 8 số cuối barcode trong file.
+   Khi QR hỏng / mờ, chụp & đọc sẽ nhận dạng chữ trên tem (Tesseract, chạy trong worker riêng,
+   tải ~5 MB ở lần dùng đầu rồi trình duyệt tự lưu lại).
+   Chống đọc nhầm số (VD 9 → 3): đối chiếu thêm TÊN SP in trên tem với tên trong file; chỉ tự
+   nhận khi chắc chắn, còn lại cho người dùng chọn. */
+const OCR_JS = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+const OCR_OPT = {
+  workerPath:'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js',
+  corePath:'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1',
+  langPath:'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int'
+};
+let _ocrW = null, _ocrCv = null;
+function ocrWorker(){
+  if(_ocrW) return _ocrW;
+  _ocrW = (async () => {
+    if(!window.Tesseract) await loadScript(OCR_JS);
+    const w = await Tesseract.createWorker('eng', 1, OCR_OPT);
+    await w.setParameters({tessedit_pageseg_mode:'11', tessedit_char_whitelist:'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-'});
+    return w;
+  })();
+  _ocrW.catch(() => { _ocrW = null; });
+  return _ocrW;
+}
+/* Cắt vùng quanh khung ngắm (rộng ra 2 bên vì mã chữ nằm cạnh QR), phóng cho chữ đủ to */
+function ocrGrab(wide, maxW){
+  const v = $('camVideo');
+  let r;
+  if(wide){ r = {x:0, y:0, w:v.videoWidth, h:v.videoHeight}; }
+  else {
+    const b = boxInVideo(), cx = b.x + b.w / 2, cy = b.y + b.h / 2, s = Math.max(b.w, b.h);
+    const w = Math.min(v.videoWidth, s * 2.3), h = Math.min(v.videoHeight, s * 1.45);
+    r = {x:Math.max(0, Math.min(v.videoWidth - w, cx - w / 2)), y:Math.max(0, Math.min(v.videoHeight - h, cy - h / 2)), w, h};
+  }
+  const sc = Math.min(2.5, maxW / r.w);
+  const cv = _ocrCv || (_ocrCv = document.createElement('canvas'));
+  cv.width = Math.round(r.w * sc); cv.height = Math.round(r.h * sc);
+  const cx = cv.getContext('2d');
+  cx.imageSmoothingQuality = 'high';
+  cx.filter = 'grayscale(1) contrast(1.6)';
+  cx.drawImage(v, r.x, r.y, r.w, r.h, 0, 0, cv.width, cv.height);
+  cx.filter = 'none';
+  return cv;
+}
+const ocrNorm = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+const OCR_FIX = {O:'0', Q:'0', D:'0', U:'0', I:'1', L:'1', J:'1', Z:'2', S:'5', G:'6', T:'7', B:'8', A:'4'};
+const ocrDig = s => String(s).split('').map(c => OCR_FIX[c] || c).join('').replace(/\D/g, '');
+/* Tìm các mã dạng XXXX-12345678 trong chữ đọc được */
+function ocrCodes(data){
+  const out = [];
+  const add = (pre, grp, conf) => {
+    const d = ocrDig(grp);
+    if(d.length < 7 || d.length > 10) return;
+    out.push({pre: pre || '', d, conf: conf == null ? 50 : conf});
+  };
+  (data.words || []).forEach(w => {
+    const m = String(w.text).toUpperCase().match(/([A-Z0-9]{2,9})-+([0-9A-Z]{7,10})$/);
+    if(m) add(m[1], m[2], w.confidence);
+  });
+  const T = String(data.text || '').toUpperCase();
+  const re = /([A-Z0-9]{2,9})\s?-\s?([0-9OQDILSZBGT]{7,10})(?![0-9A-Z])/g; let m;
+  while((m = re.exec(T))) if(!out.some(o => o.d === ocrDig(m[2]))) add(m[1], m[2], null);
+  return out;
+}
+/* Tên SP in trên tem khớp tên trong file tới đâu (0..1) */
+function ocrNameScore(p, T){
+  const N = ocrNorm(p.tenSP);
+  if(N.length < 6) return 0;
+  let hit = 0, tot = 0;
+  for(let i = 0; i + 4 <= N.length; i += 2){ tot++; if(T.indexOf(N.substr(i, 4)) >= 0) hit++; }
+  let sc = tot ? hit / tot : 0;
+  // số đuôi trong tên (VD "- 100122757") phân biệt các mẫu gần giống nhau
+  const id = (String(p.tenSP).match(/\d{6,}/g) || []).pop();
+  if(id) sc += T.indexOf(id) >= 0 ? 0.3 : -0.15;
+  return sc;
+}
+const OCR_SWAP = {'0':'869', '1':'74', '2':'7', '3':'985', '4':'1', '5':'63', '6':'508', '7':'12', '8':'3609', '9':'38'};
+/* Gom kết quả của các lần đọc → {p, code, sure} hoặc danh sách để chọn */
+function ocrDecide(reads){
+  const T = reads.map(r => ocrNorm(r.text)).join('|');
+  const idx = tailIndex();
+  const votes = new Map();   // key SP → {p, code, n, conf, fix}
+  const vote = (p, code, conf, fix) => {
+    const v = votes.get(p.key) || {p, code, n:0, conf:0, fix:true};
+    v.n++; v.conf = Math.max(v.conf, conf); if(!fix){ v.fix = false; v.code = code; }
+    votes.set(p.key, v);
+  };
+  reads.forEach(r => ocrCodes(r).forEach(c => {
+    const d8 = c.d.slice(-8);
+    const m = idx[8] && idx[8].get(d8);
+    if(m && m.length){ m.forEach(p => vote(p, c.pre + '-' + d8, c.conf, false)); return; }
+    // số đọc nhầm 1 chữ số → thử các số hay bị nhầm, để tên SP quyết định
+    for(let i = 0; i < 8; i++) for(const alt of (OCR_SWAP[d8[i]] || '')){
+      const d2 = d8.slice(0, i) + alt + d8.slice(i + 1);
+      const m2 = idx[8] && idx[8].get(d2);
+      if(m2) m2.forEach(p => vote(p, c.pre + '-' + d2, 0, true));
+    }
+  }));
+  const L = Array.from(votes.values()).map(v => Object.assign(v, {ns: ocrNameScore(v.p, T)}))
+    .sort((a, b) => (b.fix ? 0 : 1) - (a.fix ? 0 : 1) || b.ns - a.ns || b.n - a.n);
+  if(!L.length) return null;
+  const best = L[0], second = L[1];
+  const clear = !second || best.ns - second.ns > 0.2 || (!best.fix && second.fix);
+  let sure = false;
+  if(!best.fix) sure = clear && (best.conf >= 80 || best.n >= 2 || best.ns >= 0.35);
+  else sure = clear && best.ns >= 0.5;
+  return {best, list:L.slice(0, 6), sure};
+}
+/* Đọc chữ trên tem: tối đa 3 lượt (vùng quanh khung, phóng to; khung hình kế tiếp; cả khung hình) */
+async function ocrTem(onStep){
+  const w = await ocrWorker();
+  const reads = [];
+  const plans = [() => ocrGrab(false, 1150), () => ocrGrab(false, 1500), () => ocrGrab(true, 1400)];
+  for(let i = 0; i < plans.length; i++){
+    if(onStep) onStep(i);
+    if(i) await sleep(150);
+    const r = await w.recognize(plans[i]());
+    reads.push(r.data);
+    const dec = ocrDecide(reads);
+    if(dec && dec.sure) return dec;
+    if(i === plans.length - 1) return dec;
+  }
+  return null;
+}
+
 /* ---------- Chụp & đọc ảnh nét cao ----------
    Dành cho tem quá nhỏ, mờ hoặc QR in kém: lấy ảnh độ phân giải cao nhất có thể
    (Android chụp ảnh thật qua ImageCapture, iPhone lấy khung hình video) rồi thử
@@ -3694,6 +4250,12 @@ async function scanStill(){
   const v = $('camVideo');
   if(!v || !v.videoWidth){ toast('Camera chưa sẵn sàng — chờ hình hiện lên rồi bấm lại','warn'); return; }
   stillBusy = true; paused = true;
+  // Đọc chữ trên tem (VD 1010BF-00054953) chạy song song ở luồng riêng trong lúc thử đọc QR
+  let ocrMsg = '', ocrDone = false;
+  const ocrFirst = !_ocrW;
+  const ocrP = ocrTem(i => { ocrMsg = 'đọc chữ trên tem (' + (i + 1) + '/3)'; })
+    .catch(e => { console.warn('OCR', e); return {err:e}; })
+    .then(r => { ocrDone = true; return r; });
   const wasmOk = await prepWasm();
   const found = [];
   const tryCanvas = async (opts) => {
@@ -3720,6 +4282,9 @@ async function scanStill(){
             camCv.width = Math.round(bmp.width * sc); camCv.height = Math.round(bmp.height * sc);
             camCx.drawImage(bmp, 0, 0, camCv.width, camCv.height);
             await tryCanvas({tryRotate:true, tryInvert:true, tryDenoise:true, maxNumberOfSymbols:8});
+            if(!found.length && wasmOk && mw < 1500){
+              try{ (await qrRepairRead(camCx.getImageData(0, 0, camCv.width, camCv.height), null, true)).forEach(r => found.push(r.text)); }catch(e){}
+            }
             if(found.length) break;
           }
         }
@@ -3734,21 +4299,63 @@ async function scanStill(){
       () => { grab(false, 1100); return {binarizer:'GlobalHistogram', tryDenoise:true}; },
       () => { grab(true, 640);   return {tryDownscale:false, tryInvert:true}; }
     ];
-    for(let i = 0; i < plans.length && !found.length; i++){
-      loading(true, 'Giữ yên máy · đang đọc (' + (i + 1) + '/' + plans.length + ')');
+    const hasGood = () => found.some(t => resolveCode(String(t).trim()).list.length);
+    for(let i = 0; i < 3 && !hasGood(); i++){
+      loading(true, 'Giữ yên máy · đang đọc QR (' + (i + 1) + '/3)');
       await sleep(i ? 220 : 60);
       await tryCanvas(plans[i]());
+    }
+    // QR chưa ra SP → chờ kết quả đọc chữ trên tem
+    if(!hasGood()){
+      let t0 = performance.now();
+      while(!ocrDone){
+        loading(true, ocrFirst && !ocrMsg ? 'Lần đầu: đang tải bộ đọc chữ (~5 MB)…' : 'Giữ yên máy · ' + (ocrMsg || 'đọc chữ trên tem…'));
+        await sleep(120);
+        if(performance.now() - t0 > 45000) break;
+      }
+      const dec = ocrDone ? await ocrP : null;
+      if(dec && dec.best){
+        loading(false); paused = false;
+        if(dec.sure){
+          window._ocrHit = dec.best.code;
+          lastCode = dec.best.code; lastAt = performance.now();
+          handleCode(dec.best.code, true);
+          window._scanSrc = 'chữ trên tem: ' + dec.best.code;
+          return;
+        }
+        // Chưa chắc (chữ mờ, số dễ nhầm) → để người dùng chọn đúng SP
+        beep(); paused = true;
+        window._scanSrc = 'chữ trên tem (chọn tay): ' + dec.best.code;
+        const pl = dec.list.map(v => v.p); pl.tail = 8;
+        showPicker(dec.best.code, pl, true);
+        toast('Chữ trên tem hơi mờ — chọn đúng sản phẩm', 'warn', 3000);
+        return;
+      }
+      if(dec && dec.err && ocrFirst) toast('Chưa tải được bộ đọc chữ (cần mạng lần đầu)', 'warn', 3500);
+    }
+    for(let i = 3; i < plans.length && !hasGood(); i++){
+      loading(true, 'Giữ yên máy · đang đọc (' + (i + 1) + '/' + plans.length + ')');
+      await sleep(220);
+      await tryCanvas(plans[i]());
+    }
+    // Vẫn chưa ra → có thể QR bị rách / dơ / mất một góc: dựng lại góc định vị rồi đọc
+    const fixes = [() => grabWide(1.8, 1200), () => grab(true, 1280), () => grabWide(1.4, 800), () => grab(true, 900)];
+    for(let i = 0; i < fixes.length && !hasGood() && wasmOk; i++){
+      loading(true, 'Mã hỏng góc? Đang dựng lại góc QR (' + (i + 1) + '/' + fixes.length + ')');
+      await sleep(i ? 160 : 30);
+      const {W, H} = fixes[i]();
+      try{ (await qrRepairRead(camCx.getImageData(0, 0, W, H), null, true)).forEach(r => found.push(r.text)); }catch(e){}
     }
     loading(false);
     const uniq = Array.from(new Set(found.map(x => String(x).trim()).filter(Boolean)));
     paused = false;
     if(!uniq.length){
       beep(true);
-      toast('Chưa đọc được. Đưa xa hơn chút (20–25 cm), bật Đèn nếu tối, giữ yên rồi bấm lại — hoặc gõ vài số cuối.','warn', 5000);
+      toast('Chưa đọc được. Đưa cả tem (QR + dòng mã chữ) vào giữa khung, cách 10–15 cm, bật Đèn nếu tối, giữ yên rồi bấm lại — hoặc gõ vài số cuối.','warn', 6000);
       return;
     }
     const good = uniq.filter(t => resolveCode(t).list.length);
-    lastCode = good[0] || uniq[0]; lastAt = performance.now();
+    lastCode = good[0] || uniq[0]; lastAt = performance.now(); _seen.set(lastCode, lastAt);
     handleCode(good[0] || uniq[0], true);
   }catch(e){
     loading(false); paused = false;
@@ -3758,6 +4365,7 @@ async function scanStill(){
 function hideSheet(){
   clearSug();
   $('scanSheet').classList.remove('show');
+  $('scanview').classList.remove('sheeton');
   $('scanBottom').style.opacity = '1';
   // Giữ nguyên mã vừa quét: nếu mã còn nằm trong khung thì không tự bật lại bảng ngay
   paused = false; lastAt = performance.now();
@@ -3773,29 +4381,19 @@ function showSheet(p, scannedCode, tail, noAdd){
   const add = !noAdd;
   window._sheetPrev = prev; window._sheetAdd = add;
   const bl = blind();
-  let info = '';
-  if(had){
-    const other = p.checker && S.checker && p.checker !== S.checker;
-    const wt = p.checkedAt ? relTime(p.checkedAt) : '';
-    const who = other ? '<b>' + esc(p.checker) + '</b>' : 'bạn';
-    info = '<div class="warnbox ' + (other ? 'warn' : 'info') + '">' + svg(other ? 'i-alert' : 'i-info') +
-      '<div style="flex:1">Đã đếm trước <b>' + prev + '</b> (' + who + (wt ? ', ' + wt : '') + ').' +
-      '<span id="shModeTxt">' + (add ? ' Lưu sẽ <b>cộng thêm</b> số bên dưới.' : ' Đang <b>sửa tổng</b>.') + '</span>' +
-      '<button class="btn xs sec" id="shModeBtn" style="margin-top:6px;display:flex" onclick="sheetMode()">' +
-        (add ? 'Nhập lại tổng' : 'Cộng thêm') + '</button></div></div>';
-  }
-  const tailNote = scannedCode
-    ? '<div class="warnbox info">' + svg('i-check') + '<div>Khớp theo <b>' + (tail || TAIL_LEN) + ' số cuối</b>: tem <span class="code">' +
-      esc(scannedCode) + '</span> ↔ file <span class="code">' + esc(p.barcode||'—') + '</span></div></div>'
+  // Gọn: 1 dòng mã + 1 dòng "đã đếm trước" — để bảng thấp, không che khung ngắm
+  const other = had && p.checker && S.checker && p.checker !== S.checker;
+  const info = had
+    ? '<div class="shinfo ' + (other ? 'warn' : '') + '"><span id="shModeTxt">' + (add ? 'Lưu sẽ <b>cộng thêm</b> vào' : 'Đang <b>sửa tổng</b>, thay cho') + '</span> ' +
+      '<b class="num">' + prev + '</b> đã đếm (' + (other ? '<b>' + esc(p.checker) + '</b>' : 'bạn') + (p.checkedAt ? ', ' + tFull(p.checkedAt) : '') + ')' +
+      '<button id="shModeBtn" onclick="sheetMode()">' + (add ? 'Nhập lại tổng' : 'Cộng thêm') + '</button></div>'
     : '';
   $('scanSheetBody').innerHTML =
-    info + tailNote +
     '<div class="pname">' + esc(p.tenSP || 'Không tên') + '</div>' +
-    '<div class="pmeta">' +
+    '<div class="shmeta">' +
       (p.barcode ? '<span class="code">' + esc(p.barcode) + '</span>' : '') +
-      (p.maSP ? '<span class="pill">' + esc(p.maSP) + '</span>' : '') +
-      '<span class="pill">' + esc(p.group||'Khác') + '</span>' +
-      (p.isOut ? '<span class="pill purple">Ngoài HT</span>' : '') +
+      (scannedCode ? '<span class="tm">' + svg('i-check') + 'tem <b>' + esc(scannedCode) + '</b></span>' : '') +
+      (p.isOut ? '<span class="pill purple">Ngoài HT</span>' : '<span class="gp">' + esc(p.group||'Khác') + '</span>') +
     '</div>' +
     '<div class="bigcount">' +
       (bl ? '<div><div class="tagline">Tồn hệ thống</div><b style="font-size:19px;opacity:.35">••</b></div>'
@@ -3810,16 +4408,17 @@ function showSheet(p, scannedCode, tail, noAdd){
             : (had ? '<div class="l"><span class="pill ' + (STATUS_CLS[calcStatus(ht, prev, p.isOut)]||'') + '">' + STATUS_TXT[calcStatus(ht, prev, p.isOut)] +
                 (prev - ht ? ' ' + (prev - ht > 0 ? '+' : '') + (prev - ht) : '') + '</span></div>' : '<div class="l"><span class="pill">Chưa đếm</span></div>')) + '</div>' +
     '</div>' +
+    info +
     '<div class="actions">' +
       '<button class="btn sec" onclick="hideSheet()">Bỏ qua</button>' +
       '<button class="btn ok" style="flex:2" onclick="sheetSave()">' + svg('i-check') + 'LƯU &amp; QUÉT TIẾP</button>' +
     '</div>' +
-    '<button class="btn sec block" style="margin-top:8px" onclick="sheetSaveBack()">' +
-      svg('i-list') + 'Lưu &amp; trở về danh sách</button>' +
-    '<div class="tagline" style="text-align:center;margin:9px 0 4px">Người kiểm: <span class="whochip">' + esc(S.checker||'—') + '</span></div>';
+    '<div class="shfoot"><span>Người kiểm: <span class="whochip">' + esc(S.checker||'—') + '</span></span>' +
+      '<button onclick="sheetSaveBack()">' + svg('i-list') + 'Lưu &amp; về danh sách</button></div>';
   window._sheetP = p;
   sheetCalc();
   $('scanSheet').classList.add('show');
+  $('scanview').classList.add('sheeton');
   $('scanBottom').style.opacity = '0';
   setTimeout(() => { const i = $('shQty'); if(i){ i.focus(); i.select(); } }, 300);
 }
@@ -3829,7 +4428,7 @@ function sheetMode(){
   const i = $('shQty'); if(!i) return;
   i.value = add ? 1 : (window._sheetPrev || 0);
   $('shQtyLbl').textContent = add ? 'SL lần quét này' : 'Tổng đã đếm';
-  $('shModeTxt').innerHTML = add ? ' Lưu sẽ <b>cộng thêm</b> số bên dưới.' : ' Đang <b>sửa tổng</b>.';
+  $('shModeTxt').innerHTML = add ? 'Lưu sẽ <b>cộng thêm</b> vào' : 'Đang <b>sửa tổng</b>, thay cho';
   $('shModeBtn').textContent = add ? 'Nhập lại tổng' : 'Cộng thêm';
   sheetCalc(); i.focus(); i.select();
 }
@@ -3851,6 +4450,7 @@ async function sheetSave(quiet){
   const p = window._sheetP; if(!p) return;
   const tt = sheetTotal();
   const q = Math.max(0, parseInt($('shQty').value)||0);
+  buzz([25]);
   await saveCount(p, tt, window._sheetAdd ? {a:'+', n:q, c:window._scanSrc || ''} : {a:'=', n:tt, c:window._scanSrc || ''});
   if(!quiet) toast(String(p.tenSP||'').slice(0,24) + ': ' + (window._sheetAdd && window._sheetPrev ? window._sheetPrev + ' + ' + q + ' = ' : '') + tt, 'ok', 1700);
   else toast('Đã lưu ' + String(p.tenSP||'').slice(0,22) + ' = ' + tt, 'ok', 2000);
