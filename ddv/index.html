@@ -1886,6 +1886,10 @@ function stats(){
 }
 
 function render(){
+  // Đang gõ trong ô tìm kiếm (VD máy vừa nhận dữ liệu từ Cloud) thì KHÔNG vẽ lại cả trang:
+  // thay ô nhập sẽ làm iPhone đóng / đổi bàn phím giữa chừng. Chỉ làm mới phần danh sách.
+  const ae = document.activeElement;
+  if(S.view === 'count' && ae && ae.id === 'q' && $('clistWrap')){ refreshList(); return; }
   renderNav();
   $('shopLabel').innerHTML = 'Phát triển bởi <b>Thinh Dao</b>';
   const m = $('main');
@@ -2044,8 +2048,6 @@ let _cObs = null;
 function vCount(){
   const s = stats();
   const bl = blind();
-  const list = _cl = filtered();
-  const shown = list.slice(0, (S.page + 1) * PAGE);
   // Đếm trên chip phải khớp với con số tiến độ phía trên: cùng loại bỏ những nhóm đang tắt
   const base = S.group !== 'all' ? S.products.filter(inMyScope).filter(p => (p.group||'Khác') === S.group) : activeProducts();
   const c = {all: base.length, left:0, done:0, ok:0, under:0, over:0, out:0, lech:0};
@@ -2072,7 +2074,7 @@ function vCount(){
   '<div class="cbar">' +
     '<div class="search">' + svg('i-search','si') +
       '<input id="q" placeholder="Tìm tên, mã, vài số cuối…" value="' + esc(S.q) + '" autocomplete="off" enterkeyhint="search">' +
-      (S.q ? '<button class="sx" onclick="clearQ()" aria-label="Xoá tìm kiếm">' + svg('i-x') + '</button>' : '') +
+      '<button class="sx' + (S.q ? '' : ' hidden') + '" id="qx" onmousedown="event.preventDefault()" aria-label="Xoá tìm kiếm">' + svg('i-x') + '</button>' +
       '<button class="sfind" onclick="startFind()" aria-label="Quét mã để tìm">' + svg('i-scan') + '</button>' +
     '</div>' +
     '<div class="seg">' + P.map(([k,t]) =>
@@ -2086,11 +2088,22 @@ function vCount(){
     '</div>' +
   '</div>' +
 
-  (!list.length ? emptyBox('i-box', S.q ? 'Không tìm thấy' : 'Không có sản phẩm',
-      S.q ? 'Không có SP khớp "' + esc(S.q) + '" trong mục đang lọc' : (S.filter === 'left' ? 'Đã đếm hết mục này 🎉' : 'Thử đổi bộ lọc hoặc import file tồn kho')) :
-  '<div class="card listcard" id="clist">' + shown.map(countRow).join('') + '</div>' +
-  '<div class="csent" id="csent">' + (shown.length < list.length ? 'Đang tải thêm…' : 'Hết danh sách · ' + list.length + ' SP') + '</div>')
+  '<div id="clistWrap">' + listAreaHTML() + '</div>'
   );
+}
+function listAreaHTML(){
+  const list = _cl = filtered();
+  const shown = list.slice(0, (S.page + 1) * PAGE);
+  if(!list.length) return emptyBox('i-box', S.q ? 'Không tìm thấy' : 'Không có sản phẩm',
+      S.q ? 'Không có SP khớp "' + esc(S.q) + '" trong mục đang lọc' : (S.filter === 'left' ? 'Đã đếm hết mục này 🎉' : 'Thử đổi bộ lọc hoặc import file tồn kho'));
+  return '<div class="card listcard" id="clist">' + shown.map(countRow).join('') + '</div>' +
+    '<div class="csent" id="csent">' + (shown.length < list.length ? 'Đang tải thêm…' : 'Hết danh sách · ' + list.length + ' SP') + '</div>';
+}
+/* Chỉ thay phần danh sách — ô tìm kiếm giữ nguyên để bàn phím không bị đóng / đổi kiểu */
+function refreshList(){
+  const w = $('clistWrap'); if(!w) return;
+  w.innerHTML = listAreaHTML();
+  bindList();
 }
 /* Mã hiển thị: đậm 5 số cuối — phần dùng để đối chiếu với tem dán */
 function codeHTML(c){
@@ -2116,14 +2129,25 @@ function bindCount(){
   if(tb) document.documentElement.style.setProperty('--tbh', tb.offsetHeight + 'px');
   const q = $('q');
   if(q){
-    let t = null;
-    q.oninput = () => { clearTimeout(t); t = setTimeout(() => {
-      const pos = q.selectionStart;
-      S.q = q.value; S.page = 0; render();
-      const n = $('q'); if(n){ n.focus(); try{ n.setSelectionRange(pos, pos); }catch(e){} }
-    }, 260); };
+    let t = null, composing = false;
+    const x = $('qx');
+    const run = () => { clearTimeout(t); t = setTimeout(() => {
+      if(S.q === q.value) return;
+      S.q = q.value; S.page = 0; refreshList();
+    }, 220); };
+    q.addEventListener('compositionstart', () => { composing = true; });
+    q.addEventListener('compositionend', () => { composing = false; run(); });
+    q.oninput = () => { if(x) x.classList.toggle('hidden', !q.value); if(!composing) run(); };
     q.onkeydown = e => { if(e.key === 'Enter') q.blur(); };
+    if(x){
+      const clr = e => { if(e) e.preventDefault(); q.value = ''; x.classList.add('hidden'); clearTimeout(t); S.q = ''; S.page = 0; refreshList(); q.focus(); };
+      x.onclick = clr;
+      x.addEventListener('touchend', clr, {passive:false});
+    }
   }
+  bindList();
+}
+function bindList(){
   const box = $('clist');
   if(box) box.onclick = e => { const r = e.target.closest('.crow'); if(r) editQty(r.dataset.k); };
   // Cuộn gần tới cuối thì nạp thêm, khỏi phải bấm "Xem thêm"
@@ -2141,11 +2165,12 @@ function bindCount(){
     _cObs.observe(sent);
   }
 }
-function clearQ(){ S.q = ''; S.page = 0; render(); }
-function setFilter(f){ S.filter = f; S.page = 0; render(); window.scrollTo(0, 0); }
+function clearQ(){ S.q = ''; S.page = 0; const q = $('q'); if(q){ q.value = ''; const x = $('qx'); if(x) x.classList.add('hidden'); refreshList(); } else render(); }
+const blurQ = () => { const q = $('q'); if(q && document.activeElement === q) q.blur(); };
+function setFilter(f){ blurQ(); S.filter = f; S.page = 0; render(); window.scrollTo(0, 0); }
 /* Bấm vào ô số liệu ở trang chủ → mở thẳng danh sách đã lọc sẵn */
 function jump(f){ S.filter = f; S.group = 'all'; S.q = ''; S.page = 0; go('count'); }
-function setGroup(g){ S.group = g; S.page = 0; render(); }
+function setGroup(g){ blurQ(); S.group = g; S.page = 0; render(); }
 function emptyBox(i, t, s){
   return '<div class="card"><div class="empty">' + svg(i,'ic') + '<div class="t">' + t + '</div><div class="s">' + s + '</div></div></div>';
 }
