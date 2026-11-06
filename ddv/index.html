@@ -424,6 +424,11 @@ textarea.input{min-height:70px;resize:vertical}
 .st-done{border-left-color:var(--info)} .st-done .cq{background:var(--info-soft);border:1px solid var(--info-line)} .st-done .cq b,.st-done .cq span{color:var(--info)}
 .csent{text-align:center;font-size:11.5px;color:var(--muted);padding:12px 0 4px}
 .grplist{max-height:58vh;overflow:auto}
+.invqr{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px;width:min(64vw,250px);margin:4px auto 0}
+.invqr svg{display:block;width:100%;height:auto}
+.invsteps{margin:0;padding-left:19px;display:grid;gap:5px;font-size:12.5px;color:var(--ink-2);line-height:1.45}
+.invstaff{display:flex;flex-wrap:wrap;gap:6px}
+.invstaff small{color:var(--over);font-weight:600}
 .eq-x{display:flex;gap:16px;margin-top:12px}
 .eq-x button{border:none;background:none;padding:4px 0;font-size:12.5px;font-weight:650;color:var(--ink-2);display:inline-flex;align-items:center;gap:5px}
 .eq-x button .ic{width:15px;height:15px}
@@ -1052,13 +1057,16 @@ async function hashPw(pw){
 }
 
 async function allUsers(){ return (await rq(st('users').getAll())) || []; }
-async function putUser(u){ return rq(st('users','readwrite').put(u)); }
-async function delUser(u){ return rq(st('users','readwrite').delete(u)); }
+async function putUser(u, keepMt){ if(!keepMt) u.mt = now(); return rq(st('users','readwrite').put(u)); }
+async function delUser(u){
+  const t = (await getMeta('userTombs')) || {}; t[normName(u)] = now(); await setMeta('userTombs', t);
+  return rq(st('users','readwrite').delete(u));
+}
 
 async function ensureUsers(){
   S.users = await allUsers();
   if(!S.users.length){
-    await putUser({u:OWNER, name:OWNER, role:'admin', pw: await hashPw('123456'), at:now(), mustChange:true});
+    await putUser({u:OWNER, name:OWNER, role:'admin', pw: await hashPw('123456'), at:'1970-01-01T00:00:00.000Z', mt:'1970-01-01T00:00:00.000Z', mustChange:true}, true);
     S.users = await allUsers();
   }
   return S.users;
@@ -1146,7 +1154,8 @@ function vUsers(){
     ((isOwner(b.u)?1:0)-(isOwner(a.u)?1:0)) || ((b.role==='admin'?1:0)-(a.role==='admin'?1:0)));
   return (
   '<div class="page-h"><div><h1>Tài khoản</h1><p>Cấp quyền và quản lý nhân viên</p></div>' +
-  '<button class="btn sm" onclick="newUser()">' + svg('i-plus') + 'Thêm</button></div>' +
+  '<div style="display:flex;gap:6px">' + (syncOn() ? '<button class="btn sm sec" onclick="openInvite()">' + svg('i-users') + 'Mời</button>' : '') +
+  '<button class="btn sm" onclick="newUser()">' + svg('i-plus') + 'Thêm</button></div></div>' +
   '<div class="card listcard">' + list.map(x => {
     const me = S.me && normName(x.u) === normName(S.me.u);
     const adm = x.role === 'admin' || isOwner(x.u);
@@ -1357,6 +1366,105 @@ function chunkBySize(list, max){
 const mt = p => (p && (p.mtime || p.checkedAt || '')) || '';
 function newer(a, b){ return mt(a) >= mt(b); }
 
+/* ---------- Gộp danh sách tài khoản giữa các máy ----------
+   Trước đây máy nào đẩy lên sau thì ghi đè TOÀN BỘ danh sách tài khoản: máy mới cài
+   (chỉ có tài khoản mặc định Thịnh / 123456) có thể ghi đè mật khẩu thật trên Cloud,
+   hoặc tài khoản vừa tạo ở máy khác bị mất. Giờ gộp từng tài khoản: bản sửa sau thắng,
+   tài khoản đã xoá được ghi nhận để máy khác xoá theo. */
+const umt = u => (u && (u.mt || u.at)) || '';
+async function mergeUsers(rUsers, rTombs){
+  const tombs = Object.assign({}, (await getMeta('userTombs')) || {});
+  Object.keys(rTombs || {}).forEach(k => { if(!tombs[k] || rTombs[k] > tombs[k]) tombs[k] = rTombs[k]; });
+  const local = await allUsers();
+  const map = {}, rmap = {};
+  (Array.isArray(rUsers) ? rUsers : []).forEach(u => { if(u && u.u){ const k = normName(u.u); rmap[k] = u; if(!map[k] || umt(u) > umt(map[k])) map[k] = u; } });
+  local.forEach(u => { if(u && u.u){ const k = normName(u.u); if(!map[k] || umt(u) > umt(map[k])) map[k] = u; } });
+  Object.keys(map).forEach(k => { if(tombs[k] && tombs[k] >= umt(map[k]) && !isOwner(map[k].u)) delete map[k]; });
+  const tx = db.transaction('users', 'readwrite'), os = tx.objectStore('users');
+  local.forEach(u => { const m = map[normName(u.u)]; if(!m || m.u !== u.u) os.delete(u.u); });
+  Object.values(map).forEach(u => os.put(u));
+  await new Promise(r => { tx.oncomplete = r; tx.onerror = r; });
+  await setMeta('userTombs', tombs);
+  S.users = await allUsers();
+  if(S.me){ const f = findUser(S.me.u); if(f) S.me = f; }
+  const users = Object.values(map);
+  const changed = users.some(u => { const r = rmap[normName(u.u)]; return !r || umt(u) > umt(r); }) ||
+                  Object.keys(rmap).some(k => !map[k]);
+  return {users, tombs, changed};
+}
+
+/* ---------- Mời nhân viên ----------
+   Link (và mã QR) chứa sẵn cấu hình Cloud của cửa hàng. Nhân viên mở link → app tự kết nối,
+   tải danh sách tài khoản về → chọn tên, nhập mật khẩu là quét được ngay.
+   Cấu hình nằm sau dấu # nên không bị gửi lên máy chủ GitHub. */
+const b64u = s => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const unb64u = s => decodeURIComponent(escape(atob(s.replace(/-/g, '+').replace(/_/g, '/'))));
+function joinLink(){
+  const c = syncCfg();
+  return location.origin + location.pathname + '#join=' + b64u(JSON.stringify({k:c.key, b:c.binId, n:S.shopName || '', c:S.shopCode || ''}));
+}
+async function openInvite(){
+  if(!isAdmin()){ toast('Chỉ quản trị mới mời được nhân viên', 'warn'); return; }
+  if(!syncOn()){ toast('Kết nối Cloud trước rồi mới mời nhân viên được', 'warn'); openSyncModal(); return; }
+  const url = joinLink();
+  let qr = '';
+  try{
+    if(!window.qrcode) await loadScript('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js');
+    const q = qrcode(0, 'L'); q.addData(url); q.make();
+    qr = q.createSvgTag({cellSize:4, margin:2, scalable:true, alt:'Mã QR mời nhân viên'});
+  }catch(e){}
+  const staff = S.users.filter(u => !isOwner(u.u));
+  const b = modal('<div class="modal-h"><div><h3>Mời nhân viên</h3>' +
+    '<p>Nhân viên quét mã này bằng camera điện thoại → app tự kết nối dữ liệu của cửa hàng</p></div></div>' +
+    (qr ? '<div class="invqr">' + qr + '</div>' : '<div class="warnbox warn">' + svg('i-alert') + '<div>Chưa tạo được mã QR (cần mạng) — dùng nút Copy link bên dưới.</div></div>') +
+    '<div class="row" style="margin-top:10px">' +
+      '<button class="btn sec sm" id="ivCopy">' + svg('i-list') + 'Copy link</button>' +
+      (navigator.share ? '<button class="btn sm" id="ivShare">' + svg('i-upload') + 'Gửi qua Zalo…</button>' : '') +
+    '</div>' +
+    '<div class="field" style="margin-top:14px"><label>Các bước cho nhân viên</label>' +
+    '<ol class="invsteps">' +
+      '<li>Quét mã QR bằng <b>Camera</b> iPhone (hoặc mở link) → mở bằng <b>Safari / Chrome</b>, không mở trong Zalo.</li>' +
+      '<li>Chọn tên của mình, nhập mật khẩu (lần đầu là <b>123456</b>) rồi đặt mật khẩu mới.</li>' +
+      '<li>Bấm <b>Quét</b> và cho phép camera. Số đếm tự đồng bộ về máy quản lý.</li>' +
+    '</ol></div>' +
+    '<div class="field"><label>Tài khoản nhân viên (' + staff.length + ')</label>' +
+      (staff.length ? '<div class="invstaff">' + staff.map(u => '<span class="whochip">' + esc(u.name || u.u) +
+        (u.mustChange ? ' · <small>chưa đổi MK</small>' : '') + '</span>').join('') + '</div>'
+        : '<div class="tagline">Chưa có tài khoản nhân viên nào — tạo trước để nhân viên đăng nhập được.</div>') +
+      '<button class="btn sec sm" style="margin-top:8px" id="ivUsers">' + svg('i-plus') + 'Tạo / quản lý tài khoản</button></div>' +
+    '<div class="warnbox warn">' + svg('i-alert') + '<div>Link chứa <b>khoá Cloud</b> của cửa hàng. Chỉ gửi trong nhóm nội bộ. ' +
+      'Người có link vẫn phải có tài khoản mới vào được app, nhưng người rành kỹ thuật có thể đọc dữ liệu bằng khoá này. ' +
+      'Lỡ gửi nhầm thì tạo Bin mới ở mục Cấu hình Cloud.</div></div>' +
+    '<div class="modal-actions"><button class="btn sec block" onclick="closeModal()">Đóng</button></div>');
+  b.querySelector('#ivCopy').onclick = () => {
+    if(navigator.clipboard) navigator.clipboard.writeText(url).then(() => toast('Đã copy link mời', 'ok'), () => prompt('Copy link:', url));
+    else prompt('Copy link:', url);
+  };
+  const sh = b.querySelector('#ivShare');
+  if(sh) sh.onclick = () => navigator.share({title:'Kiểm kê ' + (S.shopName || ''), text:'Link vào app kiểm kê cửa hàng (mở bằng Safari/Chrome):', url}).catch(() => {});
+  b.querySelector('#ivUsers').onclick = () => { closeModal(); go('users'); };
+}
+/* Mở app bằng link mời: lưu cấu hình Cloud, tải dữ liệu + tài khoản về trước khi đăng nhập */
+async function handleJoin(){
+  const m = /[#&]join=([A-Za-z0-9_\-]+)/.exec(location.hash || '');
+  if(!m) return false;
+  try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){ location.hash = ''; }
+  let p = null;
+  try{ p = JSON.parse(unb64u(m[1])); }catch(e){}
+  if(!p || !p.k || !p.b){ toast('Link mời bị lỗi — xin quản lý gửi lại', 'err', 5000); return false; }
+  const old = syncCfg();
+  if(old.binId && old.binId !== p.b) clearSession();          // đổi sang cửa hàng khác → đăng nhập lại
+  setSyncCfg(Object.assign({}, old, {key:p.k, binId:p.b}));
+  if(p.n){ S.shopName = p.n; await setMeta('shopName', p.n); }
+  if(p.c){ S.shopCode = p.c; await setMeta('shopCode', p.c); }
+  loading(true, 'Đang kết nối dữ liệu cửa hàng...');
+  const ok = await cloudPull({force:true, quiet:true});
+  loading(false);
+  toast(ok ? 'Đã kết nối ' + (S.shopName || 'cửa hàng') + ' · chọn tên của bạn để đăng nhập'
+           : 'Chưa tải được dữ liệu — kiểm tra mạng rồi mở lại link', ok ? 'ok' : 'err', 5000);
+  return ok;
+}
+
 /* ---------- Tiết kiệm lượt gọi Cloud ----------
    Gói miễn phí JSONBin chỉ có 10.000 lượt gọi cho cả tài khoản, dùng một lần không reset.
    Bản trước mỗi lần lưu số đếm tải lại + ghi lại TOÀN BỘ dữ liệu (~12 lượt/lần), 4 máy quét
@@ -1479,6 +1587,7 @@ async function cloudPush(opt){
     }
     // Sau bước trên, máy này đã có đủ bản mới nhất của mọi SP → đó chính là dữ liệu cần đẩy
     const merged = (await allProducts()).filter(p => !isBuried(p, tombs)).map(slim);
+    const mu = await mergeUsers(remoteMeta && remoteMeta.users, remoteMeta && remoteMeta.userTombs);
 
     // 3. Chia ngăn cố định, chỉ ghi lại ngăn có thay đổi
     const plan = planChunks(merged, L.nb);
@@ -1513,7 +1622,7 @@ async function cloudPush(opt){
       v: 3, shopCode: S.shopCode, shopName: S.shopName,
       sessionId: S.sessionId, sessions: await allSessions(),
       excluded: Array.from(S.excluded),
-      users: await allUsers(),
+      users: mu.users, userTombs: mu.tombs,
       assign: S.assign || {},
       tombs: tombs,
       chunks: ids, ch: hashes, nb: plan.nb,
@@ -1657,11 +1766,9 @@ async function cloudPull(opt){
     if(meta.assign && typeof meta.assign === 'object'){ S.assign = meta.assign; await setMeta('assign', meta.assign); }
     if(Array.isArray(meta.chunks)) await setMeta('chunkIds', meta.chunks);
     if(meta.presence) S.presence = meta.presence;
-    if(Array.isArray(meta.users) && meta.users.length){
-      // Không xoá tài khoản chỉ có ở máy này, chỉ cập nhật/bổ sung từ cloud
-      await bulkPut('users', meta.users.filter(u => u && u.u));
-      S.users = await allUsers();
-      if(S.me){ const fresh = findUser(S.me.u); if(fresh) S.me = fresh; }
+    {
+      const mu = await mergeUsers(meta.users, meta.userTombs);
+      if(mu.changed) needPush = true;        // máy này có thay đổi tài khoản mà Cloud chưa có
     }
 
     lastRemoteAt = meta.at || '';
@@ -2501,6 +2608,7 @@ function vMore(){
       '<button class="btn sec sm" onclick="openSyncModal()">' + svg('i-cloud') + 'Cấu hình</button>' +
       (syncOn() ? '<button class="btn sm" onclick="pushNow()">' + svg('i-refresh') + 'Đồng bộ ngay</button>' : '') +
     '</div>' +
+    (syncOn() ? '<button class="btn block" style="margin-top:9px" onclick="openInvite()">' + svg('i-users') + 'Mời nhân viên (mã QR)</button>' : '') +
   '</div>'
   :
   '<div class="sec-title">' + svg('i-cloud') + 'Đồng bộ đám mây</div>' +
@@ -5636,6 +5744,7 @@ async function boot(){
     await loadHistory();
     await ensureUsers();
     await shLoad();
+    await handleJoin();
 
     // Khôi phục phiên đăng nhập trước đó nếu tài khoản vẫn còn
     const sess = readSession();
