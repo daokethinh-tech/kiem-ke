@@ -2,7 +2,7 @@
  * App shell cache-first để mở được khi offline; API JSONBin luôn đi thẳng ra mạng.
  * v2: bỏ html5-qrcode, lưu sẵn bộ đọc mã ZXing WASM (kể cả file .wasm) để quét được khi mất mạng.
  */
-const CACHE = 'ddv-kiemke-v2';
+const CACHE = 'ddv-kiemke-v3';
 const SHELL = [
   './', './index.html', './manifest.json',
   'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js',
@@ -38,7 +38,8 @@ self.addEventListener('fetch', e => {
 
   if (req.mode === 'navigate') {
     e.respondWith(
-      fetch(req)
+      // no-cache: luôn hỏi lại máy chủ — GitHub Pages cho trình duyệt giữ bản cũ tới 10 phút
+      fetch(req.url, {cache:'no-cache', credentials:'same-origin'})
         .then(r => { const c = r.clone(); caches.open(CACHE).then(x => x.put(req, c)); return r; })
         .catch(() => caches.match(req)
           .then(r => r || caches.match('./index.html'))

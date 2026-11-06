@@ -1094,7 +1094,7 @@ function loginScreen(msg){
       '<input class="input" id="lgPw" type="password" placeholder="Nhập mật khẩu" enterkeyhint="go"></div>' +
     '<div id="lgMsg" class="lgmsg">' + (msg || '') + '</div>' +
     '<button class="btn block" id="lgGo" style="margin-top:2px">Đăng nhập</button>' +
-    '<div class="lgfoot">Phần mềm được phát triển bởi <b>Thinh Dao</b></div>' +
+    '<div class="lgfoot">Phần mềm được phát triển bởi <b>Thinh Dao</b> · bản ' + APP_VER + '</div>' +
   '</div></div>');
   const pw = document.getElementById('lgPw'), sel = document.getElementById('lgUser'), out = document.getElementById('lgMsg');
   const doLogin = async () => {
@@ -2647,7 +2647,7 @@ function vMore(){
     '<button class="btn danger block sm" onclick="clearAllProducts()">' + svg('i-trash') + 'Xoá hết SP kỳ này</button>' +
   '</div>' : '') +
   '<div class="tagline" style="text-align:center;margin-top:16px;opacity:.6">Di Động Việt · Kiểm kê hàng hóa<br>' +
-  'Phần mềm được phát triển bởi <b>Thinh Dao</b></div>'
+  'Phần mềm được phát triển bởi <b>Thinh Dao</b><br>Phiên bản ' + APP_VER + '</div>'
   );
 }
 function mrow(i, t, s, fn){
@@ -3154,8 +3154,14 @@ function grab(full, maxW){
   return {W, H};
 }
 async function decodeFrame(){
-  const k = camFrame % 3;
+  const k = camFrame % 4;
   let W, H, list = [];
+  if(k === 3 && camEngine !== 'zxing' && await (wasmReady || Promise.resolve(false))){
+    // Ảnh hơi nhoè (camera iPhone đang lấy nét lại): thu nhỏ vùng khung trước khi đọc làm nét cạnh rõ hơn
+    ({W, H} = grab(false, 640));
+    list = await wasmRead(camCx.getImageData(0, 0, W, H), {tryDownscale:false, tryDenoise:true});
+    return {list, W, H};
+  }
   if(camEngine === 'native'){
     if(k === 2 && wasmReady){
       // lượt "khó": ZXing WASM với bộ lọc chống mờ, bắt mã mà bộ đọc của máy bỏ sót
@@ -3221,7 +3227,10 @@ function acceptRead(text, fmt){
   const still = seenCode === text && t - seenAt < 450;
   seenCode = text; seenAt = t;
   if(paused) return;
-  if(text === lastCode && (still || t - lastAt < 1300)) return;
+  // Chế độ +1 tự cộng không hỏi → mã phải rời khung rồi vào lại mới tính tiếp.
+  // Chế độ hỏi số lượng có bảng xác nhận → mã cùng loại (các hộp giống hệt nhau đặt cạnh nhau)
+  // vẫn nhận lại sau 2,5 giây dù chưa rời khung, khỏi phải lia ra lia vào.
+  if(text === lastCode && (t - lastAt < 1300 || (still && (scanMode === 'plus' || t - lastAt < 2500)))) return;
   lastCode = text; lastAt = t;
   onScan(text);
 }
@@ -3336,6 +3345,7 @@ function beep(bad){
    ở phần đuôi. Trước đây app chỉ so 5 số cuối — dễ khớp nhầm sang SP khác có cùng 5 số đuôi.
    Giờ so từ dài tới ngắn (8 → 7 → 6 → 5 số), lấy mức dài nhất có kết quả, nên tem chuẩn
    (4 số đầu + 8 số cuối của barcode) luôn khớp đúng 1 SP. */
+const APP_VER = '2026.11.06-7';
 const TAIL_LENS = [8, 7, 6, 5];
 const TAIL_LEN = 5;
 const digits = s => String(s == null ? '' : s).replace(/\D/g, '');
@@ -3633,51 +3643,67 @@ function hideQuick(){
 async function scanStill(){
   if(stillBusy || !scanning) return;
   const v = $('camVideo');
-  if(!v || !v.videoWidth){ toast('Camera chưa sẵn sàng','warn'); return; }
+  if(!v || !v.videoWidth){ toast('Camera chưa sẵn sàng — chờ hình hiện lên rồi bấm lại','warn'); return; }
   stillBusy = true; paused = true;
-  loading(true, 'Đang phân tích ảnh nét cao...');
+  const wasmOk = await prepWasm();
+  const found = [];
+  const tryCanvas = async (opts) => {
+    const W = camCv.width, H = camCv.height;
+    if(camEngine === 'native' && camDetector){
+      try{ (await camDetector.detect(camCv)).forEach(b => found.push(b.rawValue)); }catch(e){}
+    }
+    if(!found.length && wasmOk){
+      try{ (await wasmRead(camCx.getImageData(0, 0, W, H), opts)).forEach(r => found.push(r.text)); }catch(e){}
+    }else if(!found.length && (zxJs || await setupZxJs())){
+      zxJsRead(W, H, false).concat(zxJsRead(W, H, true)).forEach(r => found.push(r.text));
+    }
+  };
   try{
-    let src = v, W0 = v.videoWidth, H0 = v.videoHeight;
+    // Android: chụp 1 ảnh thật độ phân giải cao trước
     if(window.ImageCapture && camTrack && !isIOS()){
+      loading(true, 'Đang chụp ảnh nét cao...');
       try{
-        const blob = await Promise.race([new ImageCapture(camTrack).takePhoto(), sleep(4500).then(() => null)]);
-        if(blob){ const bmp = await createImageBitmap(blob); src = bmp; W0 = bmp.width; H0 = bmp.height; }
+        const blob = await Promise.race([new ImageCapture(camTrack).takePhoto(), sleep(4000).then(() => null)]);
+        if(blob){
+          const bmp = await createImageBitmap(blob);
+          for(const mw of [2000, 1100]){
+            const sc = Math.min(1, mw / bmp.width);
+            camCv.width = Math.round(bmp.width * sc); camCv.height = Math.round(bmp.height * sc);
+            camCx.drawImage(bmp, 0, 0, camCv.width, camCv.height);
+            await tryCanvas({tryRotate:true, tryInvert:true, tryDenoise:true, maxNumberOfSymbols:8});
+            if(found.length) break;
+          }
+        }
       }catch(e){}
     }
-    const found = [];
-    const wasmOk = await prepWasm();
-    for(const maxW of [2400, 1400, 900]){
-      const sc = Math.min(1, maxW / W0);
-      const W = Math.round(W0 * sc), H = Math.round(H0 * sc);
-      camCv.width = W; camCv.height = H;
-      camCx.drawImage(src, 0, 0, W, H);
-      if(camEngine === 'native' && camDetector){
-        try{ (await camDetector.detect(camCv)).forEach(b => found.push(b.rawValue)); }catch(e){}
-      }
-      if(wasmOk){
-        try{
-          (await wasmRead(camCx.getImageData(0, 0, W, H),
-            {tryRotate:true, tryInvert:true, tryDenoise:true, maxNumberOfSymbols:8})).forEach(r => found.push(r.text));
-        }catch(e){}
-      }else if(zxJs || await setupZxJs()){
-        zxJsRead(W, H, false).concat(zxJsRead(W, H, true)).forEach(r => found.push(r.text));
-      }
-      if(found.length) break;
+    // Mọi máy: chụp liên tiếp 6 khung trong ~1,5 giây, mỗi khung thử một kiểu đọc
+    const plans = [
+      () => { grab(true, 1280);  return {tryRotate:true, maxNumberOfSymbols:8}; },
+      () => { grab(false, 1600); return {tryDenoise:true}; },
+      () => { grab(false, 700);  return {tryDownscale:false, tryDenoise:true}; },
+      () => { grab(true, 900);   return {binarizer:'GlobalHistogram', tryInvert:true, tryRotate:true}; },
+      () => { grab(false, 1100); return {binarizer:'GlobalHistogram', tryDenoise:true}; },
+      () => { grab(true, 640);   return {tryDownscale:false, tryInvert:true}; }
+    ];
+    for(let i = 0; i < plans.length && !found.length; i++){
+      loading(true, 'Giữ yên máy · đang đọc (' + (i + 1) + '/' + plans.length + ')');
+      await sleep(i ? 220 : 60);
+      await tryCanvas(plans[i]());
     }
     loading(false);
-    const uniq = Array.from(new Set(found.map(s => String(s).trim()).filter(Boolean)));
+    const uniq = Array.from(new Set(found.map(x => String(x).trim()).filter(Boolean)));
+    paused = false;
     if(!uniq.length){
-      paused = false;
-      toast('Không đọc được mã. Đưa gần hơn (15–25 cm), đủ sáng, giữ yên rồi thử lại.','warn');
+      beep(true);
+      toast('Chưa đọc được. Đưa xa hơn chút (20–25 cm), bật Đèn nếu tối, giữ yên rồi bấm lại — hoặc gõ vài số cuối.','warn', 5000);
       return;
     }
     const good = uniq.filter(t => resolveCode(t).list.length);
-    paused = false;
     lastCode = good[0] || uniq[0]; lastAt = performance.now();
     handleCode(good[0] || uniq[0], true);
   }catch(e){
     loading(false); paused = false;
-    toast('Không đọc được mã. Chỉnh sáng / khoảng cách rồi thử lại.','warn');
+    toast('Không đọc được mã — thử lại', 'warn');
   }finally{ stillBusy = false; }
 }
 function hideSheet(){
@@ -3705,7 +3731,7 @@ function showSheet(p, scannedCode, tail, noAdd){
     const who = other ? '<b>' + esc(p.checker) + '</b>' : 'bạn';
     info = '<div class="warnbox ' + (other ? 'warn' : 'info') + '">' + svg(other ? 'i-alert' : 'i-info') +
       '<div style="flex:1">Đã đếm trước <b>' + prev + '</b> (' + who + (wt ? ', ' + wt : '') + ').' +
-      '<span id="shModeTxt">' + (add ? ' Số nhập bên dưới sẽ <b>cộng thêm</b> vào.' : ' Đang <b>sửa tổng</b>.') + '</span>' +
+      '<span id="shModeTxt">' + (add ? ' Lưu sẽ <b>cộng thêm</b> số bên dưới.' : ' Đang <b>sửa tổng</b>.') + '</span>' +
       '<button class="btn xs sec" id="shModeBtn" style="margin-top:6px;display:flex" onclick="sheetMode()">' +
         (add ? 'Nhập lại tổng' : 'Cộng thêm') + '</button></div></div>';
   }
@@ -3730,9 +3756,10 @@ function showSheet(p, scannedCode, tail, noAdd){
         '<input class="num" id="shQty" type="number" inputmode="numeric" min="0" value="' + (add ? 1 : prev) + '" oninput="sheetCalc()">' +
         '<button onclick="sheetStep(1)">+</button>' +
       '</div><div class="tagline" id="shQtyLbl" style="margin-top:4px">' + (add ? 'SL lần quét này' : 'Tổng đã đếm') + '</div></div>' +
-      '<div class="rt"><div class="tagline">Tổng đếm</div><div class="d num" id="shTot" style="color:var(--ink)"></div>' +
+      '<div class="rt"><div class="tagline">Đã đếm</div><div class="d num" style="color:var(--ink)">' + (had ? prev : '—') + '</div>' +
         (bl ? '<div class="l"><span class="pill purple">Kiểm chéo</span></div>'
-            : '<div class="l"><span class="pill" id="shSt"></span></div>') + '</div>' +
+            : (had ? '<div class="l"><span class="pill ' + (STATUS_CLS[calcStatus(ht, prev, p.isOut)]||'') + '">' + STATUS_TXT[calcStatus(ht, prev, p.isOut)] +
+                (prev - ht ? ' ' + (prev - ht > 0 ? '+' : '') + (prev - ht) : '') + '</span></div>' : '<div class="l"><span class="pill">Chưa đếm</span></div>')) + '</div>' +
     '</div>' +
     '<div class="actions">' +
       '<button class="btn sec" onclick="hideSheet()">Bỏ qua</button>' +
@@ -3753,7 +3780,7 @@ function sheetMode(){
   const i = $('shQty'); if(!i) return;
   i.value = add ? 1 : (window._sheetPrev || 0);
   $('shQtyLbl').textContent = add ? 'SL lần quét này' : 'Tổng đã đếm';
-  $('shModeTxt').innerHTML = add ? ' Số nhập bên dưới sẽ <b>cộng thêm</b> vào.' : ' Đang <b>sửa tổng</b>.';
+  $('shModeTxt').innerHTML = add ? ' Lưu sẽ <b>cộng thêm</b> số bên dưới.' : ' Đang <b>sửa tổng</b>.';
   $('shModeBtn').textContent = add ? 'Nhập lại tổng' : 'Cộng thêm';
   sheetCalc(); i.focus(); i.select();
 }
@@ -3766,15 +3793,7 @@ function sheetStep(d){
   i.value = Math.max(0, (parseInt(i.value)||0) + d);
   sheetCalc();
 }
-function sheetCalc(){
-  const p = window._sheetP; if(!p) return;
-  const tt = sheetTotal();
-  $('shTot').textContent = tt;
-  if(blind()) return;   // kỳ chéo: không hé lộ chênh lệch trong lúc đếm
-  const ht = Number(p.tonHT)||0, d = tt - ht;
-  const s = calcStatus(ht, tt, p.isOut);
-  const b = $('shSt'); b.className = 'pill ' + (STATUS_CLS[s]||''); b.textContent = STATUS_TXT[s] + (d ? ' ' + (d > 0 ? '+' : '') + d : '');
-}
+function sheetCalc(){ /* ô số lượng chỉ là số của lần này — "Đã đếm" bên cạnh giữ nguyên tới khi lưu */ }
 async function sheetSaveBack(){
   const ok = await sheetSave(true);
   if(ok !== false) stopScan();
@@ -3784,7 +3803,7 @@ async function sheetSave(quiet){
   const tt = sheetTotal();
   const q = Math.max(0, parseInt($('shQty').value)||0);
   await saveCount(p, tt);
-  if(!quiet) toast(String(p.tenSP||'').slice(0,26) + (window._sheetAdd && window._sheetPrev ? ' +' + q : '') + ' = ' + tt, 'ok', 1500);
+  if(!quiet) toast(String(p.tenSP||'').slice(0,24) + ': ' + (window._sheetAdd && window._sheetPrev ? window._sheetPrev + ' + ' + q + ' = ' : '') + tt, 'ok', 1700);
   else toast('Đã lưu ' + String(p.tenSP||'').slice(0,22) + ' = ' + tt, 'ok', 2000);
   hideSheet();
   return true;
@@ -5695,6 +5714,7 @@ function setupPWA(){
   });
   if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
     navigator.serviceWorker.register('./sw.js').then(reg => {
+      document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') reg.update().catch(() => {}); });
       reg.addEventListener('updatefound', () => {
         const w = reg.installing; if(!w) return;
         w.addEventListener('statechange', () => {
