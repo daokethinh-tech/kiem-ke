@@ -1728,17 +1728,42 @@ function planChunks(items, nbPrev){
     nb = Math.ceil(nb * 1.5);
   }
 }
-/* Tải các ngăn còn thiếu. Ngăn nào lỗi thì báo lỗi luôn — hợp nhất trên dữ liệu thiếu rồi
-   ghi đè lên mây sẽ làm mất số đếm của máy khác. */
+/* Tải các ngăn còn thiếu — 3 ngăn một lúc (gọi dồn cả chục ngăn cùng lúc dễ bị Cloud chặn tạm),
+   mỗi ngăn thử lại tối đa 3 lần.
+   - Ngăn KHÔNG CÒN trên Cloud (404 — bị xoá/thay khi 2 máy chia lại ngăn cùng lúc): trả về trong
+     `missing`; máy đẩy sẽ tạo ngăn mới từ dữ liệu trong máy (mọi máy đều giữ bản đủ của mình nên
+     dữ liệu tự lành lại), không dừng đồng bộ mãi như trước.
+   - Lỗi khác (mạng, Cloud bận…): báo lỗi kèm lý do — hợp nhất trên dữ liệu thiếu rồi ghi đè lên
+     mây sẽ làm mất số đếm của máy khác. */
 async function fetchChunks(ids){
-  const parts = await Promise.all(ids.map(id => binGet(id).catch(() => null)));
-  const items = [], real = {};
-  parts.forEach((p, i) => {
-    if(!p || !Array.isArray(p.items)) throw new Error('Không tải được phần dữ liệu ' + ids[i].slice(-6) + ' — thử lại sau');
-    items.push(...p.items);
-    real[ids[i]] = h32(JSON.stringify(p.items));   // dấu của nội dung THẬT trong ngăn
+  const items = [], real = {}, missing = new Set(), fails = [];
+  const res = new Array(ids.length);
+  const one = async id => {
+    for(let a = 0; a < 3; a++){
+      try{
+        const p = await binGet(id);
+        if(!p || !Array.isArray(p.items)) throw new Error('ngăn sai định dạng');
+        return {p};
+      }catch(e){
+        const m = String(e && e.message || e);
+        if(/Không tìm thấy Bin|\b404\b/.test(m)) return {miss:true};
+        if(a === 2) return {err:m};
+        await sleep(900 * (a + 1) + Math.random() * 500);
+      }
+    }
+  };
+  let k = 0;
+  await Promise.all(Array.from({length:Math.min(3, ids.length)}, async () => {
+    while(k < ids.length){ const i = k++; res[i] = await one(ids[i]); }
+  }));
+  res.forEach((r, i) => {
+    if(r.miss) missing.add(ids[i]);
+    else if(r.err) fails.push(ids[i].slice(-6) + ' (' + r.err.slice(0, 60) + ')');
+    else { items.push(...r.p.items); real[ids[i]] = h32(JSON.stringify(r.p.items)); }
   });
-  return {items, real};
+  if(fails.length) throw new Error('Không tải được phần dữ liệu ' + fails[0] + (fails.length > 1 ? ' và ' + (fails.length - 1) + ' phần khác' : '') + ' — thử lại sau');
+  if(missing.size) console.warn('Ngăn không còn trên Cloud:', Array.from(missing));
+  return {items, real, missing};
 }
 /* Hai máy đẩy cùng lúc có thể để lại một ngăn mang nội dung của máy này trong khi meta
    ghi dấu của máy kia (không có giao dịch nguyên khối giữa các bin). Nhận ra bằng cách so
@@ -1778,10 +1803,13 @@ async function cloudPush(opt){
     }
     const L = remoteLayout(remoteMeta);
     const known = (await getMeta('chunkHashes')) || {};
-    let remoteProds = [], bad = new Set();
+    let remoteProds = [], bad = new Set(), dead = new Set();
     if(L.ids.length){
       const need = L.ch ? L.ids.filter((id, i) => known[id] !== L.ch[i]) : L.ids;
-      if(need.length){ const f = await fetchChunks(need); remoteProds = f.items; bad = raced(L, f.real); }
+      if(need.length){
+        const f = await fetchChunks(need); remoteProds = f.items; bad = raced(L, f.real);
+        L.ids.forEach((id, i) => { if(f.missing.has(id)) dead.add(i); });
+      }
     }else if(remoteMeta && Array.isArray(remoteMeta.products)){
       remoteProds = remoteMeta.products;   // tương thích định dạng rất cũ
     }
@@ -1819,14 +1847,23 @@ async function cloudPush(opt){
     let wrote = 0;
     for(let i = 0; i < plan.nb; i++){
       const old = L.ids[i];
-      const same = L.ch && L.nb === plan.nb && old && L.ch[i] === hashes[i] && !bad.has(i);
+      const same = L.ch && L.nb === plan.nb && old && L.ch[i] === hashes[i] && !bad.has(i) && !dead.has(i);
       if(same){ ids.push(old); continue; }
       const body = {part:i, of:plan.nb, items:plan.B[i], at:now()};
-      if(old){ await binPut(old, body); ids.push(old); }
+      if(old && !dead.has(i)){
+        try{ await binPut(old, body); ids.push(old); }
+        catch(e){
+          if(!/Không tìm thấy Bin|\b404\b/.test(String(e.message))) throw e;
+          ids.push(await binCreate(body, 'DDV-KiemKe-p' + i));     // ngăn vừa mất → tạo lại
+        }
+      }
+      else if(old) ids.push(await binCreate(body, 'DDV-KiemKe-p' + i));  // ngăn không còn → tạo mới
       else ids.push(await binCreate(body, 'DDV-KiemKe-p' + i));
       wrote++;
     }
-    for(let i = plan.nb; i < L.ids.length; i++) if(L.ids[i]) await binDel(L.ids[i]);
+    // chỉ xoá ngăn thừa khi biết chắc bố cục trên mây (tránh xoá nhầm ngăn máy khác đang dùng)
+    if(L.ch) for(let i = plan.nb; i < L.ids.length; i++) if(L.ids[i]) await binDel(L.ids[i]);
+    if(dead.size) console.warn('Đã tạo lại', dead.size, 'ngăn bị mất trên Cloud');
     await setMeta('chunkIds', ids);
     const newKnown = {}; ids.forEach((id, i) => newKnown[id] = hashes[i]);
     await setMeta('chunkHashes', newKnown);
@@ -1869,7 +1906,8 @@ async function cloudPush(opt){
     console.error('cloudPush', e);
     dirty = true;
     setSync('err', 'Lỗi — chạm để thử lại');
-    if(!opt.quiet) toast('Không gửi được lên Cloud: ' + (e.message || e), 'err');
+    S.syncErr = String(e && e.message || e);
+    if(!opt.quiet) toast('Không gửi được lên Cloud: ' + (e.message || e), 'err', 6000);
     return false;
   }finally{
     uploading = false;
@@ -1913,12 +1951,16 @@ async function cloudPull(opt){
     const switching = !!(meta.sessionId && meta.sessionId !== S.sessionId);
     const full = !L.ch || opt.force || switching;
     const known = (await getMeta('chunkHashes')) || {};
-    let prods = [], fetchedIdx = [], real = {}, bad = new Set();
+    let prods = [], fetchedIdx = [], real = {}, bad = new Set(), lost = 0, lostIds = new Set();
     if(L.ids.length){
       fetchedIdx = L.ids.map((id, i) => i).filter(i => full || known[L.ids[i]] !== L.ch[i]);
       if(fetchedIdx.length){
         const f = await fetchChunks(fetchedIdx.map(i => L.ids[i]));
         prods = f.items; real = f.real; bad = raced(L, real);
+        lost = f.missing.size; lostIds = f.missing;
+        // ngăn mất: coi như "đáng ngờ" → không dùng để suy SP thừa, và đẩy lại để tạo ngăn mới
+        fetchedIdx = fetchedIdx.filter(i => !f.missing.has(L.ids[i]));
+        L.ids.forEach((id, i) => { if(f.missing.has(id)) bad.add(i); });
       }
     }else if(Array.isArray(meta.products)) prods = meta.products;
 
@@ -1939,6 +1981,7 @@ async function cloudPull(opt){
     }
 
     // Mọi máy phải cùng một kỳ, nếu không khoá sản phẩm sẽ khác nhau và dữ liệu bị tách đôi
+    if(switching && lost) throw new Error('Dữ liệu trên Cloud đang thiếu ' + lost + ' phần — máy tạo kỳ cần bấm Đồng bộ ngay');
     if(switching){
       const localAll = await allProducts();
       const orphan = localAll.filter(p => p.sessionId === S.sessionId).map(p => p.key);
@@ -1970,7 +2013,7 @@ async function cloudPull(opt){
         const fset = new Set(fetchedIdx);
         localAll.forEach(p => {
           if(needPush || seen.has(p.key) || isBuried(p, tombs)) return;
-          if(full || (L.nb && fset.has(bucketOf(p.key, L.nb)))) needPush = true;
+          if((full && !lost) || (L.nb && fset.has(bucketOf(p.key, L.nb)))) needPush = true;
         });
       }
     }
@@ -1982,7 +2025,8 @@ async function cloudPull(opt){
       bury.forEach(k => txb.objectStore('products').delete(k));
       await new Promise(r0 => { txb.oncomplete = r0; txb.onerror = r0; });
     }
-    if(L.ch){ const nk = {}; L.ids.forEach((id, i) => nk[id] = (id in real) ? real[id] : L.ch[i]); await setMeta('chunkHashes', nk); }
+    // ngăn mất trên Cloud: không ghi dấu → lần đẩy tới sẽ tải lại, thấy mất và tạo ngăn mới
+    if(L.ch){ const nk = {}; L.ids.forEach((id, i) => { if(!lostIds.has(id)) nk[id] = (id in real) ? real[id] : L.ch[i]; }); await setMeta('chunkHashes', nk); }
 
     if(meta.shopName){ S.shopName = meta.shopName; await setMeta('shopName', S.shopName); }
     if(meta.shopCode){ S.shopCode = meta.shopCode; await setMeta('shopCode', S.shopCode); }
@@ -2009,7 +2053,8 @@ async function cloudPull(opt){
   }catch(e){
     console.error('cloudPull', e);
     setSync('err', 'Lỗi — chạm để thử lại');
-    if(!opt.quiet) toast('Không tải được: ' + (e.message || e), 'err');
+    S.syncErr = String(e && e.message || e);
+    if(!opt.quiet) toast('Không tải được: ' + (e.message || e), 'err', 6000);
     return false;
   }
 }
@@ -3854,7 +3899,7 @@ function beep(bad){
    ở phần đuôi. Trước đây app chỉ so 5 số cuối — dễ khớp nhầm sang SP khác có cùng 5 số đuôi.
    Giờ so từ dài tới ngắn (8 → 7 → 6 → 5 số), lấy mức dài nhất có kết quả, nên tem chuẩn
    (4 số đầu + 8 số cuối của barcode) luôn khớp đúng 1 SP. */
-const APP_VER = '2026.11.08-1';
+const APP_VER = '2026.11.08-2';
 const TAIL_LENS = [8, 7, 6, 5];
 const TAIL_LEN = 5;
 const digits = s => String(s == null ? '' : s).replace(/\D/g, '');
