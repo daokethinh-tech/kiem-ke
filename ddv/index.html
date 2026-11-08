@@ -425,6 +425,25 @@ textarea.input{min-height:70px;resize:vertical}
 .csent{text-align:center;font-size:11.5px;color:var(--muted);padding:12px 0 4px}
 .grplist{max-height:58vh;overflow:auto}
 
+.mywork{margin-bottom:10px;justify-content:center}
+.prow{cursor:pointer;border-radius:10px;margin:-4px -6px 7px !important;padding:4px 6px}
+.prow:active{background:var(--surface-2)}
+.prow-ic{width:15px;height:15px;color:var(--muted);flex:0 0 auto}
+.ppanel{max-height:62vh;overflow-y:auto;margin:0 -2px;padding:0 2px}
+.pp-t{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:4px 0 8px}
+.pg{border:1px solid var(--line);border-radius:13px;padding:11px 12px;margin-bottom:9px;background:var(--surface)}
+.pg-h{display:flex;align-items:baseline;gap:8px;margin-bottom:6px;font-size:13.5px}
+.pg-h b:first-child{flex:1;min-width:0}
+.pg-h span{font-size:12px;color:var(--muted)}
+.pg-a{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.pg-b{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:6px 11px;font-size:12.5px;font-weight:650;color:var(--ink);
+  display:inline-flex;align-items:center;gap:5px}
+.pg-b .ic{width:14px;height:14px}
+.pg-b.left{border-color:var(--under-line);background:var(--under-soft);color:var(--under)}
+.pg-b.lech{border-color:var(--over-line);background:var(--over-soft);color:#8a4b06}
+.pg-b.scan{border-color:var(--ok);background:var(--ok);color:#fff}
+.pg-b.done{border-color:var(--ok-line);background:var(--ok-soft);color:var(--ok)}
+
 #camVideo{transition:filter .22s ease}
 #scanview.cool #camVideo{filter:brightness(.32) blur(2px)}
 #scanview.cool .scan-frame .box i{border-color:rgba(255,255,255,.35)}
@@ -835,7 +854,7 @@ textarea.input{min-height:70px;resize:vertical}
 </head>
 <body>
 <svg style="display:none">
-<symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M3 12h18"/></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol><symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M3 12h18"/></symbol>
 <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></symbol>
 <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15v-4M12 17V8M17 13V6"/></symbol>
 <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
@@ -1099,28 +1118,81 @@ const STATUS_TXT = {ok:'Khớp', under:'Thiếu', over:'Thừa', out:'Ngoài HT'
 const STATUS_CLS = {ok:'ok', under:'under', over:'over', out:'purple', none:''};
 
 /* Xét theo thứ tự từ trên xuống, khớp cái nào trước lấy cái đó.
-   Nhóm "Máy / Thiết bị" phải đứng CUỐI và chỉ nhận khi tên không mang dấu hiệu
-   phụ kiện — vì hầu hết phụ kiện đều có chữ IPHONE/SAMSUNG trong tên, để nhóm này
-   lên trên sẽ nuốt hết (VD "KCL IPHONE 14" là kính cường lực, không phải máy). */
+   Phụ kiện (dán, ốp, cáp…) đứng trước vì tên phụ kiện hay có chữ IPHONE/IPAD; nhóm máy
+   (Điện thoại, Máy tính bảng, Laptop) chỉ nhận tên BẮT ĐẦU bằng hãng/dòng máy.
+   Tên được chuẩn hoá NFC trước khi so: file Excel đôi khi lưu dấu tiếng Việt kiểu tách rời,
+   khi đó "ĐỒNG HỒ" không khớp "đồng hồ" và SP rơi hết vào nhóm Khác. */
 const GROUPS = [
-  {k:'Dán / Cường lực', re:/\bkcl\b|\bppf\b|cường lực|cuong luc|kính cường|kinh cuong|miếng dán|mieng dan|\bdán\b|\bdan \b|mica|cddh|dán màn|dan man/i},
-  {k:'Ốp lưng', re:/\bốp\b|\bop \b|\bcase\b|bao da|bao vệ|bao ve|ốp lưng/i},
-  {k:'Cáp sạc', re:/\bcáp\b|\bcap \b|\bcable\b|dây sạc|day sac|type ?c to|lightning/i},
-  {k:'Củ sạc', re:/củ sạc|cu sac|adapter|sạc nhanh|cốc sạc|coc sac|\bgan\b|sạc tường/i},
-  {k:'Pin dự phòng', re:/pin dự phòng|sạc dự phòng|power ?bank|\bpdp\b|pin sạc/i},
-  {k:'Tai nghe', re:/tai nghe|headphone|earbud|airpod|\bbuds\b|\btws\b/i},
-  {k:'Loa', re:/\bloa\b|speaker|soundbar/i},
-  {k:'Thẻ nhớ / USB', re:/thẻ nhớ|the nho|\busb\b|sd ?card|\botg\b|hub/i},
-  {k:'Gậy / Giá đỡ', re:/\bgậy\b|gay chup|giá đỡ|gia do|tripod|\bstand\b|holder|\bkẹp\b|magsafe/i},
-  {k:'Đồng hồ / Vòng', re:/đồng hồ|dong ho|\bwatch\b|\bband\b|dây đeo|day deo/i},
-  {k:'Sim / Dịch vụ', re:/\bsim\b|gói cước|goi cuoc|dịch vụ|bảo hành mở rộng/i},
-  {k:'Máy / Thiết bị', re:/^(iphone|ipad|samsung|xiaomi|oppo|macbook|laptop|máy)\b/i}
+  {k:'Dán / Cường lực', re:/\bkcl\b|\bppf\b|cường lực|cuong luc|kính cường|kinh cuong|miếng dán|mieng dan|\bdán\b|\bdan \b|mica|cddh|dán màn|dan man/},
+  {k:'Ốp lưng', re:/\bốp\b|\bop \b|\bcase\b|bao da|bao vệ|bao ve|ốp lưng/},
+  {k:'Cáp sạc', re:/\bcáp\b|\bcap (sac|usb|type|lightning|micro|\d)|\bcable\b|dây sạc|day sac|type ?c to|lightning/},
+  {k:'Củ sạc', re:/củ sạc|cu sac|adapter|sạc nhanh|cốc sạc|coc sac|\bgan\b|sạc tường|^sạc\b|^bộ sạc|đế sạc|sạc không dây/},
+  {k:'Pin dự phòng', re:/pin dự phòng|sạc dự phòng|power ?bank|\bpdp\b|pin sạc/},
+  {k:'Tai nghe', re:/tai nghe|headphone|earbud|airpod|\bbuds\b|\btws\b/},
+  {k:'Loa', re:/\bloa\b|speaker|soundbar/},
+  {k:'Thẻ nhớ / USB', re:/thẻ nhớ|the nho|\busb\b|sd ?card|\botg\b|\bhub\b/},
+  {k:'Gậy / Giá đỡ', re:/\bgậy\b|gay chup|giá đỡ|gia do|tripod|\bstand\b|holder|\bkẹp\b|magsafe/},
+  {k:'Bút cảm ứng', re:/\bbút\b|but cam ung|pencil|stylus|s-?pen\b/},
+  {k:'Bàn phím / Chuột', re:/bàn phím|ban phim|phủ phím|keyboard|\bchuột\b|\bmouse\b|trackpad/},
+  {k:'Đồng hồ / Vòng', re:/đồng hồ|dong ho|\bwatch\b|\bband\b|dây đeo|day deo|vòng đeo/},
+  {k:'Sim / Dịch vụ', re:/\bsim\b|gói cước|goi cuoc|dịch vụ|bảo hành mở rộng/},
+  {k:'Pin / Pin tiểu', re:/\bpin\b|energizer|duracell/},
+  {k:'Bàn chải / Chăm sóc cá nhân', re:/bàn chải|ban chai|oral-?b|máy cạo|tông đơ|máy sấy tóc|tăm nước|máy tỉa|máy rửa mặt|cân sức khỏe|cân sức khoẻ/},
+  {k:'Balo / Túi', re:/\bbalo\b|\bba lô\b|\btúi\b|\bbag\b|cặp sách|cặp laptop/},
+  {k:'Laptop / MacBook', re:/^(apple )?macbook|^laptop|^máy tính xách tay|^(apple )?imac\b|^(apple )?mac mini|^(asus|acer|dell|hp|lenovo|msi) .*(laptop|vivobook|zenbook|ideapad|thinkpad|inspiron|vostro|pavilion|aspire|nitro)/},
+  {k:'Máy tính bảng', re:/^(apple )?ipad\b|^(samsung )?galaxy tab|^(xiaomi |redmi )?pad\b|^xiaomi pad|^redmi pad|matepad|^máy tính bảng/},
+  {k:'Điện thoại', re:/^(apple )?iphone\b|^(điện thoại|samsung galaxy [asmz]\d*|samsung [asmz]\d|galaxy [asmz]\d|galaxy z|xiaomi|redmi|poco|oppo|vivo|realme|honor|nokia|tecno|infinix|nubia|zte|huawei nova|google pixel)\b/},
+  {k:'Máy / Thiết bị', re:/^(iphone|ipad|samsung|xiaomi|oppo|macbook|laptop|máy)\b/}
 ];
+const STARTS = {'Laptop / MacBook':1, 'Máy tính bảng':1, 'Điện thoại':1, 'Máy / Thiết bị':1};
+const nfc = s => String(s || '').normalize('NFC').toLowerCase();
+/* bỏ phần mở đầu kiểu "(HDBANK) - ", "[109821999] ", "E000011200-" */
+const lead = s => s.replace(/^\s*(\([^)]*\)|\[[^\]]*\])\s*-?\s*/, '').replace(/^[a-z]?\d{5,}-/i, '').trim();
 function detectGroup(ten, cha){
-  const s = ((ten||'') + ' ' + (cha||'')).toLowerCase();
-  for(const g of GROUPS) if(g.re.test(s)) return g.k;
+  const t = lead(nfc(ten)), s = t + ' ' + nfc(cha);
+  for(const g of GROUPS) if(g.re.test(STARTS[g.k] ? t : s)) return g.k;
   return 'Khác';
 }
+/* SP còn lại trong "Khác": loại nào có từ 3 SP trở lên thì tách thành nhóm riêng, lẻ tẻ thì
+   giữ ở "Khác". Gom theo chữ đầu của tên (VD các loại Nồi, Dù, Quạt); tên nhóm lấy phần chữ
+   đầu chung của cả nhóm (VD "Quạt sạc", "Dù cầm tay").
+   Chạy giống hệt nhau trên mọi máy (chỉ phụ thuộc danh sách SP) nên không cần đồng bộ, không
+   đụng tới số đếm. */
+const KHAC_MIN = 3;
+const STOP = new Set(['bộ', 'cái', 'chiếc', 'hộp', 'gói', 'combo', 'set', 'new', 'cty', 'demo', 'likenew', 'và', 'cho', 'loại', 'ddv']);
+const KNOWN = {'ccdc':'CCDC (công cụ dụng cụ)'};
+function nameWords(ten){
+  return lead(String(ten || '').normalize('NFC')).replace(/[^\p{L}0-9 ]+/gu, ' ').split(/\s+/)
+    .filter(x => x && !/\d/.test(x) && x.length > 1 && !STOP.has(x.toLowerCase()));
+}
+function regroupKhac(list){
+  let n = 0;
+  const rest = [];
+  list.forEach(p => {
+    if((p.group || 'Khác') !== 'Khác') return;
+    const g = detectGroup(p.tenSP);
+    if(g !== 'Khác'){ p.group = g; n++; } else rest.push(p);
+  });
+  const by = {};
+  rest.forEach(p => {
+    const w = nameWords(p.tenSP);
+    if(w.length && w[0].length >= 2) (by[w[0].toLowerCase()] = by[w[0].toLowerCase()] || []).push({p, w: w.map(x => x.toLowerCase())});
+  });
+  Object.keys(by).forEach(k => {
+    const L = by[k];
+    if(L.length < KHAC_MIN) return;
+    let name = KNOWN[k];
+    if(!name){
+      // phần chữ đầu chung (tối đa 3 chữ)
+      const c = [k];
+      for(let i = 1; i < 3; i++){ const x = L[0].w[i]; if(x && L.every(o => o.w[i] === x)) c.push(x); else break; }
+      name = c.join(' '); name = name.charAt(0).toUpperCase() + name.slice(1);
+    }
+    L.forEach(o => { o.p.group = name; n++; });
+  });
+  return n;
+}
+
 const isExcluded = p => S.excluded.has(p.group || 'Khác');
 /* Nhân viên chỉ làm nhóm được giao. Ai chưa được giao thì thấy toàn bộ, và luôn có
    nút chuyển sang xem tất cả khi cần tra cứu SP ngoài phần việc của mình. */
@@ -1135,6 +1207,12 @@ const activeProducts = list => (list || S.products).filter(p => !isExcluded(p) &
 async function reloadProducts(){
   const all = await allProducts();
   S.products = all.filter(p => !p.sessionId || p.sessionId === S.sessionId);
+  // SP đang ở "Khác" → tự xếp vào nhóm riêng (chỉ đổi trên máy, không đụng số đếm / thời gian sửa)
+  const before = {};
+  S.products.forEach(p => { if((p.group || 'Khác') === 'Khác') before[p.key] = 1; });
+  regroupKhac(S.products);
+  S._split = Array.from(new Set(S.products.filter(p => before[p.key] && p.group !== 'Khác').map(p => p.group)));
+  autoAssignSplit();
   return S.products;
 }
 
@@ -1248,6 +1326,7 @@ async function loginReload(manual){
 }
 
 async function afterLogin(){
+  autoAssignSplit();
   render();
   if(syncOn()){ setSync('busy','Đang tải...'); startPoll(); cloudPull({quiet:true}); }
   else setSync('off','Chưa nối Cloud');
@@ -2705,8 +2784,12 @@ function vReport(){
     byC[w].n++;
     if(p.diff !== 0 && p.diff != null) byC[w].lech++;
   });
+  // người được giao nhóm nhưng chưa đếm cái nào cũng hiện (để còn bấm xem phần việc)
+  S.users.forEach(u => { const nm = u.name || u.u; if(groupsOf(nm).length && !byC[nm]) byC[nm] = {n:0, lech:0}; });
   const cl = Object.keys(byC).sort((a,b) => byC[b].n - byC[a].n);
-  const maxN = cl.length ? byC[cl[0]].n : 1;
+  const maxN = Math.max(1, cl.length ? byC[cl[0]].n : 1);
+  const meName = S.checker || (S.me && (S.me.name || S.me.u)) || '';
+  const canSee = w => isAdmin() || normName(w) === normName(meName);
 
   const byG = {};
   activeProducts().forEach(p => {
@@ -2740,15 +2823,19 @@ function vReport(){
   '</div>') +
 
   '<div class="sec-title">' + svg('i-users') + 'Theo người kiểm</div>' +
+  (meName ? '<button class="btn block sec mywork" onclick="personPanel(' + JSON.stringify(meName).replace(/"/g,'&quot;') + ')">' +
+    svg('i-folder') + 'Phần việc của tôi · còn thiếu gì?</button>' : '') +
   (!cl.length ? '<div class="card"><div class="empty"><div class="s">Chưa có ai đếm SP nào</div></div></div>' :
-  '<div class="card pad">' + cl.map(w => {
+  '<div class="card pad">' + (isAdmin() ? '<div class="tagline" style="margin-bottom:9px">Chạm vào tên để xem từng nhóm hàng của người đó</div>' : '') +
+  cl.map(w => {
     const x = byC[w], share = s.done ? Math.round(x.n/s.done*100) : 0;
-    return '<div style="margin-bottom:11px">' +
+    const tap = canSee(w) ? ' class="prow" onclick="personPanel(' + JSON.stringify(w).replace(/"/g,'&quot;') + ')"' : '';
+    return '<div style="margin-bottom:11px"' + tap + '>' +
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">' +
         '<span class="av" style="width:22px;height:22px;font-size:10px;background:' + avColor(w) + '">' + esc((w[0]||'?').toUpperCase()) + '</span>' +
         '<b style="font-size:13px;flex:1;min-width:0">' + esc(w) + (w===S.checker?' <span class="pill brand">bạn</span>':'') + '</b>' +
         '<b class="num" style="font-size:13px;color:var(--brand)">' + x.n + '</b>' +
-        '<span class="tagline num">' + share + '%</span></div>' +
+        '<span class="tagline num">' + share + '%</span>' + (canSee(w) ? svg('i-chev', 'prow-ic') : '') + '</div>' +
       '<div class="prog"><i style="width:' + Math.round(x.n/maxN*100) + '%;background:' + avColor(w) + '"></i></div>' +
       (x.lech ? '<div class="tagline" style="margin-top:3px">' + x.lech + ' SP lệch</div>' : '') +
     '</div>';
@@ -2764,6 +2851,51 @@ function vReport(){
   }).join('') || '<div class="tagline">Chưa có dữ liệu</div>') + '</div>'
   );
 }
+/* Bảng tiến độ của 1 người: từng nhóm được giao còn thiếu gì, lệch gì → bấm để tìm & quét bổ sung.
+   Nhân viên chỉ xem được của chính mình; quản lý xem được của mọi người. */
+function personPanel(w){
+  const meName = S.checker || (S.me && (S.me.name || S.me.u)) || '';
+  if(!isAdmin() && normName(w) !== normName(meName)) return;
+  const bl = blind();
+  const asg = groupsOf(w);
+  const G = {};
+  S.products.filter(p => !isExcluded(p)).forEach(p => {
+    const g = p.group || 'Khác';
+    const x = G[g] || (G[g] = {g, t:0, d:0, left:0, lech:0, mine:0});
+    x.t++;
+    if(p.tonTT == null) x.left++;
+    else { x.d++; if(p.diff) x.lech++; if(normName(p.checker) === normName(w)) x.mine++; }
+  });
+  const mineAll = Object.values(G).reduce((a, x) => a + x.mine, 0);
+  const arg = g => JSON.stringify(g).replace(/"/g, '&quot;');
+  const row = (x, extra) => {
+    const pct = x.t ? Math.round(x.d / x.t * 100) : 0;
+    return '<div class="pg">' +
+      '<div class="pg-h"><b>' + esc(x.g) + '</b><span class="num">' + x.d + '/' + x.t + '</span><b class="num">' + pct + '%</b></div>' +
+      '<div class="prog' + (pct === 100 ? ' ok' : '') + '"><i style="width:' + pct + '%"></i></div>' +
+      (extra ? '' : '<div class="pg-a">' +
+        (x.left ? '<button class="pg-b left" onclick="goGroupList(' + arg(x.g) + ',\'left\')">Còn <b>' + x.left + '</b> chưa kiểm</button>'
+                : '<span class="pg-b done">' + svg('i-check') + 'Đã kiểm hết</span>') +
+        (!bl && x.lech ? '<button class="pg-b lech" onclick="goGroupList(' + arg(x.g) + ',\'lech\')"><b>' + x.lech + '</b> lệch</button>' : '') +
+        (x.left ? '<button class="pg-b scan" onclick="goGroupScan(' + arg(x.g) + ')">' + svg('i-scan') + 'Quét bổ sung</button>' : '') +
+      '</div>') +
+      (extra ? '<div class="tagline" style="margin-top:4px">' + esc(w) + ' đã đếm ' + x.mine + ' SP trong nhóm này</div>' : '') +
+    '</div>';
+  };
+  const mine = asg.filter(g => G[g]).map(g => G[g]);
+  const others = Object.values(G).filter(x => x.mine && asg.indexOf(x.g) < 0).sort((a, b) => b.mine - a.mine);
+  const tot = mine.reduce((a, x) => ({t:a.t + x.t, d:a.d + x.d, left:a.left + x.left}), {t:0, d:0, left:0});
+  modal('<div class="modal-h"><div><h3>' + esc(w) + (normName(w) === normName(meName) ? ' (bạn)' : '') + '</h3>' +
+      '<p>Đã đếm <b>' + mineAll + '</b> SP' + (mine.length ? ' · phần việc ' + tot.d + '/' + tot.t + ' · còn <b>' + tot.left + '</b> chưa kiểm' : '') + '</p></div></div>' +
+    '<div class="ppanel">' +
+      (mine.length ? '<div class="pp-t">Nhóm được giao</div>' + mine.map(x => row(x)).join('')
+                   : '<div class="card pad tagline" style="margin-bottom:10px">Chưa được giao nhóm hàng nào' + (isAdmin() ? ' — giao ở Thêm → Phân công ngành hàng' : '') + '.</div>') +
+      (others.length ? '<div class="pp-t">Nhóm khác có đếm thêm</div>' + others.map(x => row(x, true)).join('') : '') +
+    '</div>' +
+    '<div class="modal-actions"><button class="btn sec" onclick="closeModal()">Đóng</button></div>');
+}
+function goGroupList(g, f){ closeModal(); S.q = ''; S.group = g; S.filter = f; S.page = 0; go('count'); window.scrollTo(0, 0); }
+function goGroupScan(g){ closeModal(); S.q = ''; S.group = g; S.filter = 'left'; S.page = 0; go('count'); startScan(); }
 function avColor(n){
   const pal = ['#d01c2a','#177245','#b4690e','#6b21a8','#12557a','#be123c','#4338ca'];
   let h = 0; for(let i=0;i<n.length;i++) h = (h*31 + n.charCodeAt(i)) >>> 0;
@@ -3722,7 +3854,7 @@ function beep(bad){
    ở phần đuôi. Trước đây app chỉ so 5 số cuối — dễ khớp nhầm sang SP khác có cùng 5 số đuôi.
    Giờ so từ dài tới ngắn (8 → 7 → 6 → 5 số), lấy mức dài nhất có kết quả, nên tem chuẩn
    (4 số đầu + 8 số cuối của barcode) luôn khớp đúng 1 SP. */
-const APP_VER = '2026.11.06-13';
+const APP_VER = '2026.11.08-1';
 const TAIL_LENS = [8, 7, 6, 5];
 const TAIL_LEN = 5;
 const digits = s => String(s == null ? '' : s).replace(/\D/g, '');
@@ -4539,7 +4671,7 @@ function showSheet(p, scannedCode, tail, noAdd){
     '<div class="fs-top">' +
       '<span class="fs-ok">' + svg('i-check') + '</span>' +
       '<div class="fs-tt"><b>Đã quét được</b><span>' + (scannedCode ? 'tem <span class="num">' + esc(scannedCode) + '</span>' : 'mã <span class="num">' + esc(p.barcode || p.maSP || '') + '</span>') + '</span></div>' +
-      '<button class="fs-x" onclick="hideSheet()" aria-label="Bỏ qua">' + svg('i-x') + '</button>' +
+      '<button class="fs-x" onclick="sheetSkip()" aria-label="Bỏ qua">' + svg('i-x') + '</button>' +
     '</div>' +
     '<div class="fs-main">' +
       '<div class="fs-name">' + esc(p.tenSP || 'Không tên') + '</div>' +
@@ -4567,7 +4699,7 @@ function showSheet(p, scannedCode, tail, noAdd){
     '</div>' +
     '<div class="fs-foot">' +
       '<div class="actions">' +
-        '<button class="btn sec" onclick="hideSheet()">Bỏ qua</button>' +
+        '<button class="btn sec" onclick="sheetSkip()">Bỏ qua</button>' +
         '<button class="btn ok" style="flex:2" onclick="sheetSave()">' + svg('i-check') + 'LƯU &amp; QUÉT TIẾP</button>' +
       '</div>' +
       '<button class="fs-back" onclick="sheetSaveBack()">' + svg('i-list') + 'LƯU &amp; VỀ DANH SÁCH</button>' +
@@ -4600,6 +4732,14 @@ function sheetStep(d){
   sheetCalc();
 }
 function sheetCalc(){ /* ô số lượng chỉ là số của lần này — "Đã đếm" bên cạnh giữ nguyên tới khi lưu */ }
+/* Bỏ qua SP đang đếm → hỏi lại, tránh lỡ tay mất lượt đếm */
+async function sheetSkip(){
+  const p = window._sheetP;
+  const ok = await confirmBox('Bỏ qua, chưa lưu SP này?',
+    (p ? '<b>' + esc(String(p.tenSP || '').slice(0, 60)) + '</b><br>' : '') + 'Số lượng vừa nhập sẽ <b>không được lưu</b>.',
+    'Bỏ qua', true);
+  if(ok) hideSheet();
+}
 async function sheetSaveBack(){
   const ok = await sheetSave(true);
   if(ok !== false) stopScan();
@@ -5416,6 +5556,26 @@ async function applyBackup(d){
 
 /* Danh sách nhóm được giao cho một người. Lưu trong meta để đồng bộ theo Cloud. */
 function assignMap(){ return S.assign || {}; }
+/* Ai đang được giao nhóm "Khác" thì tự được giao thêm các nhóm mới tách ra từ "Khác"
+   (chỉ máy quản lý làm, mỗi nhóm 1 lần — quản lý bỏ ra sau đó thì không tự thêm lại). */
+async function autoAssignSplit(){
+  try{
+    if(!S.me || !isAdmin() || !S._split || !S._split.length) return;
+    const done = new Set((await getMeta('splitAssigned')) || []);
+    const fresh = S._split.filter(g => !done.has(g));
+    if(!fresh.length) return;
+    const a = Object.assign({}, assignMap());
+    const taken = new Set(); Object.values(a).forEach(L => (L || []).forEach(g => taken.add(g)));
+    const holders = Object.keys(a).filter(k => (a[k] || []).indexOf('Khác') >= 0);
+    let changed = false;
+    if(holders.length) fresh.filter(g => !taken.has(g)).forEach(g => {
+      holders.forEach(k => { a[k] = a[k].concat([g]); changed = true; });
+    });
+    fresh.forEach(g => done.add(g));
+    await setMeta('splitAssigned', Array.from(done));
+    if(changed){ S.assign = a; await setMeta('assign', a); pushSoon(); }
+  }catch(e){ console.warn('autoAssignSplit', e); }
+}
 function groupsOf(name){
   const a = assignMap();
   const k = normName(name);
